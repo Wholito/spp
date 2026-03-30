@@ -53,8 +53,7 @@ public class TestRunner
                     ClassName = test.TestClass.Name,
                     Description = test.Description,
                     Passed = false,
-                    ErrorMessage = $"{ex.GetType().Name}: {ex.Message}",
-                    StackTrace = ex.StackTrace
+                    ErrorMessage = $"{ex.GetType().Name}: {ex.Message}"
                 };
             }
             finally
@@ -169,7 +168,7 @@ public class TestRunner
         if (timeoutMs is null or <= 0)
             return await ExecuteTestCoreAsync(testClass, testMethod, description, parameters).ConfigureAwait(false);
 
-        var coreTask = ExecuteTestCoreAsync(testClass, testMethod, description, parameters);
+        var coreTask = Task.Run(() => ExecuteTestCoreAsync(testClass, testMethod, description, parameters));
         var delayTask = Task.Delay(timeoutMs.Value);
         var winner = await Task.WhenAny(coreTask, delayTask).ConfigureAwait(false);
         if (winner != coreTask)

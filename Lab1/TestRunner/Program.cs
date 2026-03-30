@@ -3,7 +3,7 @@ using TestFramework;
 var testAssembly = typeof(TestProject.CalculatorTests).Assembly;
 var parallelDop = Math.Max(4, Environment.ProcessorCount);
 
-Console.WriteLine("=== ЛР 2: сравнение времени выполнения ===\n");
+Console.WriteLine(" ЛР 2: сравнение времени выполнения\n");
 
 var runnerSeq = new TestRunner();
 runnerSeq.AddAssembly(testAssembly);
@@ -15,23 +15,18 @@ var parallel = await runnerPar.RunAsync(new TestRunnerOptions { MaxDegreeOfParal
 
 Console.WriteLine($"Последовательно (MaxDegreeOfParallelism = 1): {sequential.TotalDuration.TotalMilliseconds:F1} мс");
 Console.WriteLine($"Параллельно (MaxDegreeOfParallelism = {parallelDop}): {parallel.TotalDuration.TotalMilliseconds:F1} мс");
-if (sequential.TotalDuration > parallel.TotalDuration)
-    Console.WriteLine("Вывод: при наличии нескольких независимых тестов параллельный запуск суммарно занимает меньше времени.\n");
-else
-    Console.WriteLine("Примечание: на данной машине/наборе тестов выигрыш может быть небольшим (мало «длинных» тестов или упор в ClassSetup).\n");
-
-Console.WriteLine("=== Результаты тестов (параллельный прогон) ===\n");
+Console.WriteLine("Результаты тестов (параллельный прогон)\n");
 
 foreach (var r in parallel.Results)
 {
     if (r.TimedOut)
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write("[TIMEOUT] ");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Write("[FAIL] ");
         Console.ResetColor();
         Console.WriteLine($"{r.TestName} ({r.Duration.TotalMilliseconds:F1} мс)");
-        Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.WriteLine($"       {r.ErrorMessage}");
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine($"       TimeoutException: {r.ErrorMessage}");
         Console.ResetColor();
         continue;
     }
@@ -52,7 +47,7 @@ foreach (var r in parallel.Results)
     }
 }
 
-Console.WriteLine("\n=== Итоги ===");
+Console.WriteLine("\nИтоги");
 Console.WriteLine($"Всего: {parallel.TotalCount}, Успешно: {parallel.PassedCount}, Провалено: {parallel.FailedCount}");
 Console.WriteLine($"Время прогона (параллельно): {parallel.TotalDuration.TotalMilliseconds:F1} мс");
 
@@ -65,15 +60,15 @@ return parallel.FailedCount > 0 ? 1 : 0;
 static string FormatResults(TestRunResult result)
 {
     var sb = new System.Text.StringBuilder();
-    sb.AppendLine("=== Результаты тестирования ===");
+    sb.AppendLine("Результаты тестирования");
     sb.AppendLine($"Время: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
     sb.AppendLine();
     foreach (var r in result.Results)
     {
-        var label = r.TimedOut ? "TIMEOUT" : (r.Passed ? "PASS" : "FAIL");
+        var label = r.Passed ? "PASS" : "FAIL";
         sb.AppendLine($"[{label}] {r.TestName}");
         if (!string.IsNullOrEmpty(r.ErrorMessage))
-            sb.AppendLine($"  Ошибка: {r.ErrorMessage}");
+            sb.AppendLine($"  Ошибка: {(r.TimedOut ? $"TimeoutException: {r.ErrorMessage}" : r.ErrorMessage)}");
     }
 
     sb.AppendLine();
