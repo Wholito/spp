@@ -7,6 +7,7 @@ public class TestResult
     public string? ClassName { get; set; }
     public string? Description { get; set; }
     public bool Passed { get; set; }
+    public bool TimedOut { get; set; }
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }
     public TimeSpan Duration { get; set; }

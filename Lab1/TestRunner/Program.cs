@@ -1,20 +1,47 @@
 using TestFramework;
 
-var runner = new TestRunner();
-runner.AddAssembly(typeof(TestProject.CalculatorTests).Assembly);
+var testAssembly = typeof(TestProject.CalculatorTests).Assembly;
+var parallelDop = Math.Max(4, Environment.ProcessorCount);
 
-Console.WriteLine("=== Запуск тестов ===\n");
+Console.WriteLine("=== ЛР 2: сравнение времени выполнения ===\n");
 
-var result = await runner.RunAsync();
+var runnerSeq = new TestRunner();
+runnerSeq.AddAssembly(testAssembly);
+var sequential = await runnerSeq.RunAsync(new TestRunnerOptions { MaxDegreeOfParallelism = 1 });
 
-foreach (var r in result.Results)
+var runnerPar = new TestRunner();
+runnerPar.AddAssembly(testAssembly);
+var parallel = await runnerPar.RunAsync(new TestRunnerOptions { MaxDegreeOfParallelism = parallelDop });
+
+Console.WriteLine($"Последовательно (MaxDegreeOfParallelism = 1): {sequential.TotalDuration.TotalMilliseconds:F1} мс");
+Console.WriteLine($"Параллельно (MaxDegreeOfParallelism = {parallelDop}): {parallel.TotalDuration.TotalMilliseconds:F1} мс");
+if (sequential.TotalDuration > parallel.TotalDuration)
+    Console.WriteLine("Вывод: при наличии нескольких независимых тестов параллельный запуск суммарно занимает меньше времени.\n");
+else
+    Console.WriteLine("Примечание: на данной машине/наборе тестов выигрыш может быть небольшим (мало «длинных» тестов или упор в ClassSetup).\n");
+
+Console.WriteLine("=== Результаты тестов (параллельный прогон) ===\n");
+
+foreach (var r in parallel.Results)
 {
+    if (r.TimedOut)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write("[TIMEOUT] ");
+        Console.ResetColor();
+        Console.WriteLine($"{r.TestName} ({r.Duration.TotalMilliseconds:F1} мс)");
+        Console.ForegroundColor = ConsoleColor.DarkYellow;
+        Console.WriteLine($"       {r.ErrorMessage}");
+        Console.ResetColor();
+        continue;
+    }
+
     var status = r.Passed ? "PASS" : "FAIL";
     var color = r.Passed ? ConsoleColor.Green : ConsoleColor.Red;
     Console.ForegroundColor = color;
     Console.Write($"[{status}] ");
     Console.ResetColor();
-    Console.WriteLine($"{r.TestName} ({r.Duration.TotalMilliseconds:F1} ms)");
+    Console.WriteLine($"{r.TestName} ({r.Duration.TotalMilliseconds:F1} мс)");
     if (!r.Passed && !string.IsNullOrEmpty(r.ErrorMessage))
     {
         Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -26,14 +53,14 @@ foreach (var r in result.Results)
 }
 
 Console.WriteLine("\n=== Итоги ===");
-Console.WriteLine($"Всего: {result.TotalCount}, Успешно: {result.PassedCount}, Провалено: {result.FailedCount}");
-Console.WriteLine($"Время: {result.TotalDuration.TotalMilliseconds:F1} ms");
+Console.WriteLine($"Всего: {parallel.TotalCount}, Успешно: {parallel.PassedCount}, Провалено: {parallel.FailedCount}");
+Console.WriteLine($"Время прогона (параллельно): {parallel.TotalDuration.TotalMilliseconds:F1} мс");
 
 var outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test-results.txt");
-await File.WriteAllTextAsync(outputPath, FormatResults(result));
+await File.WriteAllTextAsync(outputPath, FormatResults(parallel));
 Console.WriteLine($"\nРезультаты сохранены в: {outputPath}");
 
-return result.FailedCount > 0 ? 1 : 0;
+return parallel.FailedCount > 0 ? 1 : 0;
 
 static string FormatResults(TestRunResult result)
 {
@@ -43,12 +70,14 @@ static string FormatResults(TestRunResult result)
     sb.AppendLine();
     foreach (var r in result.Results)
     {
-        sb.AppendLine($"[{(r.Passed ? "PASS" : "FAIL")}] {r.TestName}");
-        if (!r.Passed && !string.IsNullOrEmpty(r.ErrorMessage))
+        var label = r.TimedOut ? "TIMEOUT" : (r.Passed ? "PASS" : "FAIL");
+        sb.AppendLine($"[{label}] {r.TestName}");
+        if (!string.IsNullOrEmpty(r.ErrorMessage))
             sb.AppendLine($"  Ошибка: {r.ErrorMessage}");
     }
+
     sb.AppendLine();
     sb.AppendLine($"Всего: {result.TotalCount}, Успешно: {result.PassedCount}, Провалено: {result.FailedCount}");
-    sb.AppendLine($"Время выполнения: {result.TotalDuration.TotalMilliseconds:F1} ms");
+    sb.AppendLine($"Время выполнения: {result.TotalDuration.TotalMilliseconds:F1} мс");
     return sb.ToString();
 }
