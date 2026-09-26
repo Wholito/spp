@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Задачи</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <h1>Задачи</h1>
+
+      <div id="alert" class="alert hidden" role="alert"></div>
+
+      <section class="form-block">
+        <h2 id="form-title">Новая задача</h2>
+        <form id="task-form" method="post" action="#" novalidate>
+          <input type="hidden" id="task-id" />
+
+          <label>
+            Название
+            <input type="text" id="title" name="title" maxlength="120" required />
+          </label>
+
+          <label>
+            Описание
+            <textarea id="description" name="description" maxlength="2000" rows="3"></textarea>
+          </label>
+
+          <label>
+            Статус
+            <select id="status" name="status">
+              <option value="todo">К выполнению</option>
+              <option value="in_progress">В работе</option>
+              <option value="done">Готово</option>
+            </select>
+          </label>
+
+          <label>
+            Файл
+            <input type="file" id="attachment" name="attachment" />
+          </label>
+          <p id="current-file" class="hint hidden"></p>
+
+          <div class="actions">
+            <button type="submit" id="submit-btn">Создать</button>
+            <button type="button" id="cancel-btn" class="secondary hidden">Отмена</button>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <h2>Список</h2>
+        <div id="tasks" class="tasks"></div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

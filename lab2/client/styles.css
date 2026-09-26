@@ -1,0 +1,166 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  color: #222;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+h1,
+h2 {
+  margin: 0 0 12px;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+.form-block {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+form {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid #333;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #fff;
+  color: #333;
+}
+
+.tasks {
+  display: grid;
+  gap: 10px;
+}
+
+.task {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 12px;
+}
+
+.task-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.task h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.task p {
+  margin: 0;
+  color: #555;
+  white-space: pre-wrap;
+}
+
+.meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.task-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.task-actions button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.task-actions .danger {
+  background: #fff;
+  color: #b00020;
+  border-color: #b00020;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.empty {
+  color: #666;
+  padding: 12px 0;
+}
+
+.alert {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+}
+
+.alert-error {
+  background: #fdecea;
+  border-color: #f5c2c0;
+  color: #b00020;
+}
+
+.alert-success {
+  background: #e8f5e9;
+  border-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.hidden {
+  display: none !important;
+}
