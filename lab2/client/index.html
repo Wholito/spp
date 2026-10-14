@@ -4,42 +4,71 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Задачи</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="bg" aria-hidden="true"></div>
     <div class="app">
-      <h1>Задачи</h1>
+      <header class="header">
+        <p class="brand">Task Desk</p>
+        <h1>Задачи</h1>
+        <p class="lead">Список, файлы и доска: перетащите карточку, чтобы сменить статус.</p>
+      </header>
 
       <div id="alert" class="alert hidden" role="alert"></div>
 
-      <section class="form-block">
+      <section class="form-block" aria-labelledby="form-title">
         <h2 id="form-title">Новая задача</h2>
         <form id="task-form" method="post" action="#" novalidate>
           <input type="hidden" id="task-id" />
 
           <label>
             Название
-            <input type="text" id="title" name="title" maxlength="120" required />
+            <input type="text" id="title" name="title" maxlength="120" required placeholder="Например: Подготовить отчёт" />
           </label>
 
           <label>
             Описание
-            <textarea id="description" name="description" maxlength="2000" rows="3"></textarea>
+            <textarea id="description" name="description" maxlength="2000" rows="3" placeholder="Кратко, что нужно сделать"></textarea>
           </label>
 
-          <label>
-            Статус
-            <select id="status" name="status">
-              <option value="todo">К выполнению</option>
-              <option value="in_progress">В работе</option>
-              <option value="done">Готово</option>
-            </select>
-          </label>
+          <div class="field-row">
+            <label>
+              Статус
+              <select id="status" name="status">
+                <option value="todo">К выполнению</option>
+                <option value="in_progress">В работе</option>
+                <option value="done">Готово</option>
+              </select>
+            </label>
 
-          <label>
-            Файл
-            <input type="file" id="attachment" name="attachment" />
-          </label>
+            <label>
+              Приоритет
+              <select id="priority" name="priority">
+                <option value="low">Низкий</option>
+                <option value="medium" selected>Средний</option>
+                <option value="high">Высокий</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label>
+              Срок
+              <input type="date" id="due-date" name="dueDate" />
+            </label>
+
+            <label class="file-label">
+              Файл
+              <input type="file" id="attachment" name="attachment" />
+            </label>
+          </div>
           <p id="current-file" class="hint hidden"></p>
 
           <div class="actions">
@@ -49,9 +78,30 @@
         </form>
       </section>
 
-      <section>
-        <h2>Список</h2>
+      <section class="list-block" aria-labelledby="list-title">
+        <div class="list-head">
+          <h2 id="list-title">Список</h2>
+          <div class="view-switch">
+            <button type="button" id="view-list" class="secondary active">Список</button>
+            <button type="button" id="view-board" class="secondary">Доска</button>
+          </div>
+        </div>
+        <p id="day-line" class="day-line"></p>
         <div id="tasks" class="tasks"></div>
+        <div id="board" class="board hidden">
+          <section class="column" data-status="todo">
+            <h3>К выполнению</h3>
+            <div class="column-body" data-drop="todo"></div>
+          </section>
+          <section class="column" data-status="in_progress">
+            <h3>В работе</h3>
+            <div class="column-body" data-drop="in_progress"></div>
+          </section>
+          <section class="column" data-status="done">
+            <h3>Готово</h3>
+            <div class="column-body" data-drop="done"></div>
+          </section>
+        </div>
       </section>
     </div>
 

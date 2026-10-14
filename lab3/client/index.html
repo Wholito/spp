@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Задачи</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+    <div class="app">
+      <header class="header">
+        <div class="topbar">
+          <p class="brand">Task Desk</p>
+          <div id="session-chip" class="session-chip hidden">
+            <div id="identity"></div>
+            <button type="button" id="logout-btn" class="secondary">Выйти</button>
+          </div>
+        </div>
+        <h1>Задачи</h1>
+        <p class="lead" id="lead">Вход по временному ключу. Роли: наблюдатель, редактор и администратор.</p>
+      </header>
+
+      <div id="alert" class="alert hidden" role="alert"></div>
+
+      <section id="auth-view" class="form-block">
+        <div id="login-panel">
+          <h2>Вход</h2>
+          <form id="login-form" method="post" action="#" novalidate>
+            <label>
+              Email
+              <input type="email" id="login-email" name="email" autocomplete="username" required placeholder="editor@taskdesk.local" />
+            </label>
+            <label>
+              Пароль
+              <input type="password" id="login-password" name="password" autocomplete="current-password" required />
+            </label>
+            <div class="actions">
+              <button type="submit" id="login-btn">Войти</button>
+            </div>
+          </form>
+          <div class="auth-links">
+            <button type="button" class="link" id="show-register">Создать учётную запись</button>
+            <button type="button" class="link" id="show-forgot">Забыли пароль?</button>
+          </div>
+          <p class="demo">
+            admin@taskdesk.local / Admin12345<br />
+            editor@taskdesk.local / Editor12345<br />
+            viewer@taskdesk.local / Viewer12345
+          </p>
+        </div>
+
+        <div id="register-panel" class="hidden">
+          <h2>Регистрация</h2>
+          <form id="register-form" method="post" action="#" novalidate>
+            <label>
+              Имя
+              <input type="text" id="register-name" name="name" maxlength="40" required placeholder="Анна" />
+            </label>
+            <label>
+              Email
+              <input type="email" id="register-email" name="email" autocomplete="username" required />
+            </label>
+            <label>
+              Пароль
+              <input type="password" id="register-password" name="password" autocomplete="new-password" required />
+            </label>
+            <label>
+              Роль
+              <select id="register-role" name="role">
+                <option value="editor">Редактор</option>
+                <option value="viewer">Наблюдатель</option>
+              </select>
+            </label>
+            <div class="actions">
+              <button type="submit">Зарегистрироваться</button>
+              <button type="button" class="secondary" id="register-back">Назад</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="forgot-panel" class="hidden">
+          <h2>Восстановление</h2>
+          <form id="forgot-form" method="post" action="#" novalidate>
+            <label>
+              Email
+              <input type="email" id="forgot-email" name="email" autocomplete="username" required />
+            </label>
+            <div class="actions">
+              <button type="submit">Отправить письмо</button>
+              <button type="button" class="secondary" id="forgot-back">Назад</button>
+            </div>
+          </form>
+          <p id="forgot-result" class="hint hidden"></p>
+        </div>
+
+        <div id="reset-panel" class="hidden">
+          <h2>Новый пароль</h2>
+          <form id="reset-form" method="post" action="#" novalidate>
+            <label>
+              Пароль
+              <input type="password" id="reset-password" name="password" autocomplete="new-password" required />
+            </label>
+            <div class="actions">
+              <button type="submit">Сохранить пароль</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <div id="desk-view" class="hidden">
+        <section class="form-block" id="editor-panel" aria-labelledby="form-title">
+          <h2 id="form-title">Новая задача</h2>
+          <form id="task-form" method="post" action="#" novalidate>
+            <input type="hidden" id="task-id" />
+
+            <label>
+              Название
+              <input type="text" id="title" name="title" maxlength="120" required placeholder="Например: Подготовить отчёт" />
+            </label>
+
+            <label>
+              Описание
+              <textarea id="description" name="description" maxlength="2000" rows="3" placeholder="Кратко, что нужно сделать"></textarea>
+            </label>
+
+            <div class="field-row">
+              <label>
+                Статус
+                <select id="status" name="status">
+                  <option value="todo">К выполнению</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="done">Готово</option>
+                </select>
+              </label>
+
+              <label class="file-label">
+                Файл
+                <input type="file" id="attachment" name="attachment" accept="image/*,.pdf,.txt,.doc,.docx" />
+              </label>
+            </div>
+            <p id="current-file" class="hint hidden"></p>
+
+            <div class="actions">
+              <button type="submit" id="submit-btn">Создать</button>
+              <button type="button" id="cancel-btn" class="secondary hidden">Отмена</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="list-block" aria-labelledby="list-title">
+          <div class="list-head">
+            <h2 id="list-title">Список</h2>
+          </div>
+          <div id="tasks" class="tasks"></div>
+        </section>
+
+        <section class="list-block stack" aria-labelledby="sessions-title">
+          <div class="list-head">
+            <h2 id="sessions-title">Подключения</h2>
+            <div class="actions">
+              <button type="button" class="secondary hidden" id="scope-all-btn">Все</button>
+              <button type="button" class="secondary" id="revoke-others-btn">Закрыть остальные</button>
+            </div>
+          </div>
+          <p class="hint">Одновременно действует не больше пяти ключей. Новый вход закрывает самый старый.</p>
+          <div id="sessions"></div>
+        </section>
+
+        <section class="list-block stack hidden" id="users-panel" aria-labelledby="users-title">
+          <div class="list-head">
+            <h2 id="users-title">Роли</h2>
+          </div>
+          <div id="users"></div>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

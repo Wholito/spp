@@ -1,0 +1,5 @@
+node_modules/
+uploads/
+outbox/
+*.log
+.DS_Store

@@ -111,7 +111,7 @@ const buildPayload = (bodyData, file, existing) => {
     description: bodyData.description ?? existing?.description ?? '',
     status: bodyData.status || existing?.status || 'todo',
     priority: bodyData.priority || existing?.priority || 'medium',
-    dueDate: bodyData.dueDate ? new Date(bodyData.dueDate) : existing?.dueDate ?? null,
+    dueDate: bodyData.dueDate ? new Date(bodyData.dueDate) : null,
   };
 
   if (file) {

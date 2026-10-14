@@ -1,0 +1,300 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  padding: 2rem;
+  background: #f4f6f8;
+  color: #1a1a2e;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 1.75rem;
+}
+
+.lead {
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  color: #6b7280;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="date"],
+select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+button,
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+}
+
+button:hover,
+.btn:hover {
+  background: #1d4ed8;
+}
+
+button.danger {
+  background: #dc2626;
+}
+
+button.danger:hover {
+  background: #b91c1c;
+}
+
+button.secondary {
+  background: #6b7280;
+}
+
+button.secondary:hover {
+  background: #4b5563;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filter-bar a {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.filter-bar a.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  background: #fafafa;
+}
+
+.task-item.done {
+  opacity: 0.75;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.task-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.task-title.done {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.in_progress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.task-meta {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.task-actions form {
+  margin: 0;
+}
+
+.attachments {
+  margin-top: 0.75rem;
+}
+
+.attachments h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+}
+
+.attachments ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.attachments a {
+  color: #2563eb;
+}
+
+.empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+}
+
+.focus-card .empty {
+  padding: 0.5rem 0 0;
+  text-align: left;
+}
+
+.focus-text {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.focus-meta {
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.steps {
+  margin-top: 0.75rem;
+}
+
+.steps h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.875rem;
+}
+
+.step-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0 0 0.75rem;
+}
+
+.step-bar span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.step-row form {
+  margin: 0;
+}
+
+.step-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+.step-check span.done {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.status-labels {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

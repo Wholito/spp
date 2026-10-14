@@ -1,0 +1,14 @@
+{
+  "name": "spp-lab4",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Realtime multiplayer game Rubezh",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.18.1"
+  }
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Морской бой</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="mast">
+        <div>
+          <p class="brand">Двое на одном море</p>
+          <h1>Морской бой</h1>
+        </div>
+        <p id="status" class="status" role="status">Подключение…</p>
+      </header>
+
+      <p id="note" class="note hidden"></p>
+
+      <section id="lobby" class="panel">
+        <p class="rules">
+          Расставьте флот: один корабль на 4 клетки, два на 3, три на 2 и четыре на 1.
+          Корабли не соприкасаются даже углами. Стреляйте по морю соперника.
+          Попадание даёт ещё выстрел. Если два выстрела приходят в одну клетку, остаётся первый.
+        </p>
+        <div class="lobby-grid">
+          <form id="create-form">
+            <h2>Новая партия</h2>
+            <label>
+              Имя
+              <input id="create-name" name="name" maxlength="16" required placeholder="Аня" />
+            </label>
+            <button type="submit">Создать комнату</button>
+          </form>
+          <form id="join-form">
+            <h2>Войти по коду</h2>
+            <label>
+              Код
+              <input id="join-code" name="code" maxlength="8" required placeholder="AB12" />
+            </label>
+            <label>
+              Имя
+              <input id="join-name" name="name" maxlength="16" required placeholder="Борис" />
+            </label>
+            <button type="submit">Присоединиться</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="table" class="hidden">
+        <div class="bar">
+          <div>
+            <p class="code-label">Комната</p>
+            <p id="room-code" class="code"></p>
+          </div>
+          <p id="phase-line" class="phase-line"></p>
+          <div class="bar-actions">
+            <button type="button" id="copy-btn" class="ghost">Копировать код</button>
+            <button type="button" id="exit-btn" class="ghost">Выйти</button>
+          </div>
+        </div>
+
+        <form id="banner-form" class="banner">
+          <label>
+            Позывной
+            <input id="banner-input" maxlength="80" placeholder="Северный дозор" />
+          </label>
+          <button type="submit">Записать</button>
+        </form>
+
+        <div id="conflict" class="conflict hidden">
+          <p id="conflict-text"></p>
+          <div class="bar-actions">
+            <button type="button" id="conflict-keep" class="ghost">Оставить текущий</button>
+            <button type="button" id="conflict-mine">Записать мой</button>
+          </div>
+        </div>
+
+        <div class="layout">
+          <div class="seas">
+            <section>
+              <h2>Ваше море</h2>
+              <div id="own-board" class="board"></div>
+            </section>
+            <section id="enemy-wrap">
+              <h2>Море соперника</h2>
+              <div id="enemy-board" class="board"></div>
+            </section>
+          </div>
+          <aside class="side">
+            <div id="dock" class="dock">
+              <p id="next-ship"></p>
+              <div class="bar-actions">
+                <button type="button" id="dir-btn" class="ghost">Горизонтально</button>
+                <button type="button" id="undo-btn" class="ghost">Убрать последний</button>
+                <button type="button" id="random-btn" class="ghost">Случайно</button>
+                <button type="button" id="ready-btn">В бой</button>
+              </div>
+            </div>
+            <button type="button" id="again-btn" class="hidden">Новая партия</button>
+            <h2>Игроки</h2>
+            <div id="players"></div>
+            <h2>Журнал</h2>
+            <div id="log" class="log"></div>
+          </aside>
+        </div>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

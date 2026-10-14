@@ -1,0 +1,13 @@
+services:
+  game:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      PORT: 8090
+    volumes:
+      - game_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  game_data:
