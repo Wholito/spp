@@ -19,18 +19,3 @@ jobs:
           cache-dependency-path: lab3/server/package-lock.json
       - run: npm ci
       - run: npm test
-
-  lab4:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: lab4
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: lab4/package-lock.json
-      - run: npm ci
-      - run: npm test

@@ -7,7 +7,7 @@ RUN npm ci --omit=dev
 
 COPY . .
 
-RUN mkdir -p uploads
+RUN mkdir -p uploads logs
 
 EXPOSE 3000
 

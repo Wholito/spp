@@ -33,8 +33,10 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      LOG_FILE: /app/logs/lab3.log
     volumes:
       - uploads_data:/app/uploads
+      - ./server/logs:/app/logs
     depends_on:
       mongo:
         condition: service_healthy

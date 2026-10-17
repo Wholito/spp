@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('./lib/logger');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -10,10 +11,10 @@ const connectDB = async (retries = 20) => {
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
       await mongoose.connect(uri);
-      console.log('MongoDB connected');
+      logger.info('mongo_connected');
       return;
     } catch (err) {
-      console.error(`MongoDB connect failed (${attempt}/${retries}): ${err.message}`);
+      logger.error('mongo_connect_failed', { attempt, retries, message: err.message });
       if (attempt === retries) {
         throw err;
       }

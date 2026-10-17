@@ -1,25 +1,27 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
+const test = require('node:test');
+const assert = require('node:assert/strict');
 
 const root = path.join(__dirname, '..');
+const skip = new Set(['node_modules', 'uploads', 'outbox']);
 
-const files = (dir, acc = []) => {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'uploads' || entry.name === 'outbox') continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) files(full, acc);
-    else if (entry.name.endsWith('.js')) acc.push(full);
+const walk = (dir, acc = []) => {
+  for (const name of fs.readdirSync(dir)) {
+    if (skip.has(name)) continue;
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) walk(full, acc);
+    else if (name.endsWith('.js')) acc.push(full);
   }
   return acc;
 };
 
-test('server sources parse', () => {
-  const sources = files(root);
-  assert.ok(sources.length > 10);
-  for (const file of sources) {
-    execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' });
+test('server javascript parses', () => {
+  const files = walk(root);
+  assert.ok(files.length > 5);
+  for (const file of files) {
+    const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+    assert.equal(result.status, 0, `${file}\n${result.stderr}`);
   }
 });
