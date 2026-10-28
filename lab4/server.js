@@ -3,30 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const { createStore } = require('./store');
+const { createPostgresStore } = require('./postgres-store');
 const { createRoom, cleanName, addPlayer, applyAction, publicRoom } = require('./game');
 
 const PORT = Number(process.env.PORT || 8090);
 const publicDir = path.join(__dirname, 'public');
-const store = createStore(process.env.DATA_FILE || path.join(__dirname, 'data', 'state.json'));
-const loaded = store.load();
-
-const world = {
-  rooms: (loaded.rooms || []).filter(
-    (room) =>
-      room &&
-      room.game === 'sea' &&
-      room.code &&
-      Array.isArray(room.players) &&
-      room.players.every((player) => Array.isArray(player.grid))
-  ),
-};
-
-for (const room of world.rooms) {
-  room.applied = Array.isArray(room.applied) ? room.applied.slice(-200) : [];
-  room.log = Array.isArray(room.log) ? room.log.slice(-30) : [];
-  room.banner = room.banner && typeof room.banner.text === 'string' ? room.banner : { text: '', version: 0 };
-  for (const player of room.players) player.connected = false;
-}
+const store = process.env.DATABASE_URL
+  ? createPostgresStore(process.env.DATABASE_URL)
+  : createStore(process.env.DATA_FILE || path.join(__dirname, 'data', 'state.json'));
+const world = { rooms: [] };
 
 const tokens = new Map();
 const sockets = new Map();
@@ -40,14 +25,16 @@ const indexTokens = () => {
   }
 };
 
-indexTokens();
-
 const log = (msg, fields = {}) => {
   process.stdout.write(`${JSON.stringify({ time: new Date().toISOString(), service: 'lab4', msg, ...fields })}\n`);
 };
 
+let saveQueue = Promise.resolve();
 const persist = () => {
-  store.save({ rooms: world.rooms });
+  const snapshot = structuredClone({ rooms: world.rooms });
+  const write = saveQueue.then(() => store.save(snapshot));
+  saveQueue = write.catch((err) => log('persist_failed', { message: err.message }));
+  return write;
 };
 
 const findRoom = (code) => world.rooms.find((room) => room.code === code) || null;
@@ -68,7 +55,7 @@ const sendState = (room, except) => {
   }
 };
 
-const detach = (socket, announce = true) => {
+const detach = async (socket, announce = true) => {
   if (!socket.roomCode) return;
   const code = socket.roomCode;
   const room = findRoom(code);
@@ -81,11 +68,11 @@ const detach = (socket, announce = true) => {
   }
   socket.roomCode = null;
   socket.playerId = null;
-  persist();
+  await persist();
 };
 
-const attach = (socket, room, player) => {
-  if (socket.roomCode && socket.roomCode !== room.code) detach(socket, true);
+const attach = async (socket, room, player) => {
+  if (socket.roomCode && socket.roomCode !== room.code) await detach(socket, true);
   else if (socket.roomCode === room.code) roomSockets(room.code).delete(socket);
   socket.roomCode = room.code;
   socket.playerId = player.id;
@@ -126,7 +113,7 @@ const welcome = (socket, room, player) => {
   sendState(room, socket);
 };
 
-const handle = (socket, msg) => {
+const handle = async (socket, msg) => {
   if (!msg || typeof msg !== 'object') {
     send(socket, { type: 'error', code: 'BAD_JSON' });
     return;
@@ -145,8 +132,8 @@ const handle = (socket, msg) => {
       send(socket, { type: 'error', code: 'UNKNOWN_TOKEN' });
       return;
     }
-    attach(socket, room, player);
-    persist();
+    await attach(socket, room, player);
+    await persist();
     welcome(socket, room, player);
     return;
   }
@@ -163,8 +150,8 @@ const handle = (socket, msg) => {
     world.rooms.push(room);
     tokens.set(added.player.token, { code: room.code, playerId: added.player.id });
     trimRooms();
-    attach(socket, room, added.player);
-    persist();
+    await attach(socket, room, added.player);
+    await persist();
     welcome(socket, room, added.player);
     return;
   }
@@ -187,8 +174,8 @@ const handle = (socket, msg) => {
       return;
     }
     tokens.set(added.player.token, { code: room.code, playerId: added.player.id });
-    attach(socket, room, added.player);
-    persist();
+    await attach(socket, room, added.player);
+    await persist();
     welcome(socket, room, added.player);
     return;
   }
@@ -210,7 +197,7 @@ const handle = (socket, msg) => {
       return;
     }
     const result = applyAction(room, socket.playerId, msg, Date.now());
-    if (result.ok || result.conflict) persist();
+    if (result.ok || result.conflict) await persist();
     send(socket, {
       type: 'ack',
       actionId: msg.actionId,
@@ -275,7 +262,7 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server, maxPayload: 32 * 1024 });
 
 wss.on('connection', (socket) => {
-  socket.on('message', (raw) => {
+  socket.on('message', async (raw) => {
     let msg;
     try {
       msg = JSON.parse(raw.toString());
@@ -284,13 +271,13 @@ wss.on('connection', (socket) => {
       return;
     }
     try {
-      handle(socket, msg);
+      await handle(socket, msg);
     } catch (err) {
       log('message_failed', { message: err.message });
       send(socket, { type: 'error', code: 'INTERNAL' });
     }
   });
-  socket.on('close', () => detach(socket));
+  socket.on('close', () => detach(socket).catch((err) => log('detach_failed', { message: err.message })));
   socket.on('error', () => {});
 });
 
@@ -309,12 +296,41 @@ setInterval(() => {
   }
 }, 2000).unref();
 
-server.listen(PORT, '0.0.0.0', () => {
-  log('server_started', { port: PORT, rooms: world.rooms.length });
+const start = async () => {
+  const loaded = await store.load();
+  world.rooms = (loaded.rooms || []).filter(
+    (room) =>
+      room &&
+      room.game === 'sea' &&
+      room.code &&
+      Array.isArray(room.players) &&
+      room.players.every((player) => Array.isArray(player.grid))
+  );
+  for (const room of world.rooms) {
+    room.applied = Array.isArray(room.applied) ? room.applied.slice(-200) : [];
+    room.log = Array.isArray(room.log) ? room.log.slice(-30) : [];
+    room.banner = room.banner && typeof room.banner.text === 'string' ? room.banner : { text: '', version: 0 };
+    for (const player of room.players) player.connected = false;
+  }
+  indexTokens();
+  server.listen(PORT, '0.0.0.0', () => {
+    log('server_started', { port: PORT, rooms: world.rooms.length });
+  });
+};
+
+start().catch((err) => {
+  log('startup_failed', { message: err.message });
+  process.exitCode = 1;
+  if (store.close) store.close().catch(() => {});
 });
 
-const shutdown = () => {
-  persist();
+const shutdown = async () => {
+  try {
+    await persist();
+    if (store.close) await store.close();
+  } catch (err) {
+    log('shutdown_failed', { message: err.message });
+  }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 500).unref();
 };

@@ -214,7 +214,7 @@ const applyAction = (room, playerId, action, now) => {
     room.banner.text = text;
     room.banner.version += 1;
     room.version += 1;
-    pushLog(room, `${player.name} меняет позывной`, now);
+    pushLog(room, `${player.name} меняет сообщение`, now);
     return remember(room, action, { ok: true });
   }
 

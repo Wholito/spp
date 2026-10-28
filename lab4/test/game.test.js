@@ -42,7 +42,7 @@ test('the first shot into one cell is kept', () => {
   assert.equal(cell.version, 1);
 });
 
-test('a repeated call sign asks for a choice and can then be overwritten', () => {
+test('a simultaneous message change asks for a choice and can then be overwritten', () => {
   const room = createRoom('ABCD', now);
   const first = addPlayer(room, 'Аня', now);
   const second = addPlayer(room, 'Борис', now);

@@ -13,7 +13,7 @@
     TAKEN: 'По этой клетке уже стреляли',
     NOT_OVER: 'Партия ещё идёт',
     EMPTY_FLEET: 'Убирать нечего',
-    BAD_TEXT: 'Позывной: от 1 до 80 символов',
+    BAD_TEXT: 'Сообщение: от 1 до 80 символов',
     BAD_NAME: 'Имя: от 2 до 16 символов, без скобок',
     NO_ROOM: 'Комната не найдена',
     ROOM_FULL: 'В комнате уже два капитана',
@@ -305,7 +305,7 @@
         if (ack.ok) continue;
         if (ack.conflict && ack.resolution === 'choose') {
           state.conflict = { current: ack.current, text: action.text };
-          state.note = 'Позывной изменили одновременно. Выберите, что оставить.';
+          state.note = 'Сообщение изменили одновременно. Выберите, что оставить.';
           break;
         }
         state.note = reasons[ack.code] || reasons.CONFLICT;
@@ -354,7 +354,7 @@
     if (ack.room) state.room = ack.room;
     if (!ack.ok && ack.conflict && ack.resolution === 'choose') {
       state.conflict = { current: ack.current, text: action.text };
-      state.note = 'Позывной изменили одновременно. Выберите, что оставить.';
+      state.note = 'Сообщение изменили одновременно. Выберите, что оставить.';
     } else if (!ack.ok) {
       state.note = reasons[ack.code] || 'Ход не принят';
     } else {
@@ -581,7 +581,7 @@
 
   document.getElementById('conflict-keep').addEventListener('click', () => {
     state.conflict = null;
-    state.note = 'Оставлен текущий позывной';
+    state.note = 'Оставлено текущее сообщение';
     persist();
     render();
     flushPending();
