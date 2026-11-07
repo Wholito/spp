@@ -157,6 +157,8 @@
     registerPanel.classList.toggle('hidden', panel !== 'register');
     forgotPanel.classList.toggle('hidden', panel !== 'forgot');
     resetPanel.classList.toggle('hidden', panel !== 'reset');
+    document.getElementById('verify-panel').classList.add('hidden');
+    document.getElementById('invite-panel').classList.add('hidden');
     leadEl.textContent = 'Вход по временному ключу. Роли: наблюдатель, редактор и администратор.';
   };
 
@@ -316,7 +318,7 @@
       .map((task, index) => {
         const status = task.status || 'todo';
         const fileHtml = task.attachment?.storedName
-          ? `<a class="file-link" href="/uploads/${encodeURIComponent(task.attachment.storedName)}" target="_blank" rel="noopener">${escapeHtml(task.attachment.originalName)}</a>`
+          ? `<button type="button" class="file-link" data-action="download">${escapeHtml(task.attachment.originalName)}</button>`
           : '<span class="file-muted">без файла</span>';
         const owner = task.owner?.name ? escapeHtml(task.owner.name) : 'без владельца';
         const actions = canEdit(task)
@@ -413,6 +415,7 @@
     sessionChip.classList.remove('hidden');
     editorPanel.classList.toggle('hidden', session.user.role === 'viewer');
     usersPanel.classList.toggle('hidden', session.user.role !== 'admin');
+    await window.TaskSecurity.enter(session.user.role);
     scopeAllBtn.classList.toggle('hidden', session.user.role !== 'admin');
     leadEl.textContent = roleLeads[session.user.role] || roleLeads.editor;
     renderChip();
@@ -437,7 +440,7 @@
         email: document.getElementById('login-email').value.trim(),
         password: document.getElementById('login-password').value,
       });
-      await applyAuth(response);
+      await window.TaskSecurity.startLogin(response);
     } catch (err) {
       showAlert(networkErrorMessage(err));
     } finally {
@@ -455,7 +458,7 @@
         password: document.getElementById('register-password').value,
         role: document.getElementById('register-role').value,
       });
-      await applyAuth(response);
+      await window.TaskSecurity.startLogin(response);
     } catch (err) {
       showAlert(networkErrorMessage(err));
     }
@@ -585,6 +588,20 @@
       return;
     }
 
+    if (button.dataset.action === 'download') {
+      try {
+        const response = await api(`${API_TASKS}/${id}/attachment`);
+        if (!response.ok) throw new Error(await parseError(response));
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = button.textContent.trim();
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (err) { showAlert(networkErrorMessage(err)); }
+      return;
+    }
+
     if (button.dataset.action === 'delete') {
       if (!window.confirm('Удалить задачу?')) return;
       try {
@@ -664,6 +681,11 @@
   const boot = async () => {
     loadSession();
     const params = new URLSearchParams(location.search);
+    if (params.get('invite')) {
+      showAuth('login');
+      window.TaskSecurity.showInvite(params.get('invite'));
+      return;
+    }
     const fromLink = params.get('reset');
     if (fromLink) {
       resetToken = fromLink;
@@ -690,5 +712,6 @@
     }
   };
 
+  window.TaskSecurity.init({ api, postJson, applyAuth, parseError, showAlert });
   boot();
 })();

@@ -26,13 +26,15 @@ services:
       JWT_REFRESH_TTL: 7d
       MAX_SESSIONS: "5"
       APP_URL: http://localhost:8080
-      MAIL_EXPOSE_PREVIEW: "true"
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      DEMO_SEED: ${DEMO_SEED:-false}
       LOG_FILE: /app/logs/lab3.log
     volumes:
       - uploads_data:/app/uploads

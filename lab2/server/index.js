@@ -18,7 +18,12 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/tasks', tasksRouter);
 
+app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+
 app.use((err, _req, res, _next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });

@@ -11,8 +11,17 @@ const DEMO = [
 
 const seed = async () => {
   const existing = await User.countDocuments();
-  if (existing === 0) {
-    for (const item of DEMO) {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEmail && process.env.ADMIN_PASSWORD && !await User.exists({ email: adminEmail })) {
+    await User.create({
+      name: 'Администратор', email: adminEmail, role: 'admin',
+      passwordHash: await hashPassword(process.env.ADMIN_PASSWORD),
+    });
+    logger.info('admin_created');
+  }
+  if (existing === 0 && process.env.DEMO_SEED === 'true' && !adminEmail) {
+    const initial = DEMO;
+    for (const item of initial) {
       await User.create({
         name: item.name,
         email: item.email,
@@ -20,7 +29,7 @@ const seed = async () => {
         passwordHash: await hashPassword(item.password),
       });
     }
-    logger.info('seed_users_created', { count: DEMO.length });
+    logger.info('seed_users_created', { count: initial.length });
   }
 
   const admin = await User.findOne({ role: 'admin' });

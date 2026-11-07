@@ -17,6 +17,7 @@ const asyncRoute = require('../lib/asyncRoute');
 const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { sendPasswordReset } = require('../lib/mailer');
+const { registerRoutes, startChallenge, recordLogin } = require('./secondFactor');
 
 const router = express.Router();
 
@@ -138,9 +139,9 @@ router.post(
         passwordHash: await hashPassword(req.body.password),
       });
       await recordFailures([{ key: `register-ip:${ip}`, policy: REGISTER_POLICY }], now);
-      const tokens = await openSession(user, req);
+      const challengeId = await startChallenge(user);
       logger.info('user_registered', { reqId: req.id, userId: String(user._id), role });
-      res.status(201).json(tokens);
+      res.status(201).json({ challengeId, message: 'Код отправлен на почту' });
     } catch (err) {
       if (err.code === 11000) {
         await recordFailures([{ key: `register-ip:${ip}`, policy: REGISTER_POLICY }], now);
@@ -173,13 +174,14 @@ router.post(
         now
       );
       logger.warn('login_failed', { reqId: req.id, email, ip });
+      if (user) await recordLogin(user, req, false);
       throw new HttpError(401, 'Неверный email или пароль', { code: 'INVALID_CREDENTIALS' });
     }
 
     await clearGuards([emailKey, ipKey]);
-    const tokens = await openSession(user, req);
-    logger.info('login_succeeded', { reqId: req.id, userId: String(user._id), role: user.role });
-    res.status(200).json(tokens);
+    const challengeId = await startChallenge(user);
+    logger.info('login_challenge_sent', { reqId: req.id, userId: String(user._id) });
+    res.status(202).json({ challengeId, message: 'Код отправлен на почту' });
   })
 );
 
@@ -309,11 +311,7 @@ router.post(
         expiresAt: new Date(now + 30 * 60 * 1000),
       });
       const resetUrl = `${appUrl()}/?reset=${raw}`;
-      const sent = await sendPasswordReset({ to: email, resetUrl });
-      if (process.env.MAIL_EXPOSE_PREVIEW === 'true') {
-        if (sent.preview) body.previewUrl = sent.preview;
-        else if (!sent.delivered && sent.resetUrl) body.resetUrl = sent.resetUrl;
-      }
+      await sendPasswordReset({ to: email, resetUrl });
       logger.info('password_reset_requested', { reqId: req.id, userId: String(user._id) });
     } else {
       logger.info('password_reset_unknown_email', { reqId: req.id });
@@ -351,5 +349,7 @@ router.post(
     res.status(200).json({ message: 'Пароль обновлён. Войдите с новым паролем' });
   })
 );
+
+router.use(registerRoutes(openSession));
 
 module.exports = router;

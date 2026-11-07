@@ -23,6 +23,7 @@
             <button type="button" id="logout-btn" class="secondary">Выйти</button>
           </div>
         </div>
+
         <h1>Задачи</h1>
         <p class="lead" id="lead">Вход по временному ключу. Роли: наблюдатель, редактор и администратор.</p>
       </header>
@@ -30,6 +31,15 @@
       <div id="alert" class="alert hidden" role="alert"></div>
 
       <section id="auth-view" class="form-block">
+        <div id="verify-panel" class="hidden">
+          <h2>Код подтверждения</h2>
+          <p class="hint">Введите шестизначный код из письма. Он действует 5 минут.</p>
+          <form id="verify-form"><label>Код <input id="verify-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code" /></label><div class="actions"><button type="submit">Подтвердить вход</button><button type="button" class="secondary" id="verify-back">Назад</button></div></form>
+        </div>
+        <div id="invite-panel" class="hidden">
+          <h2>Принять приглашение</h2>
+          <form id="invite-accept-form"><label>Имя <input id="invite-name" minlength="2" maxlength="40" required /></label><label>Пароль <input id="invite-password" type="password" minlength="8" required autocomplete="new-password" /></label><div class="actions"><button type="submit">Создать аккаунт</button></div></form>
+        </div>
         <div id="login-panel">
           <h2>Вход</h2>
           <form id="login-form" method="post" action="#" novalidate>
@@ -49,11 +59,6 @@
             <button type="button" class="link" id="show-register">Создать учётную запись</button>
             <button type="button" class="link" id="show-forgot">Забыли пароль?</button>
           </div>
-          <p class="demo">
-            admin@taskdesk.local / Admin12345<br />
-            editor@taskdesk.local / Editor12345<br />
-            viewer@taskdesk.local / Viewer12345
-          </p>
         </div>
 
         <div id="register-panel" class="hidden">
@@ -179,9 +184,15 @@
           </div>
           <div id="users"></div>
         </section>
+        <section class="list-block stack hidden" id="invitations-panel">
+          <h2>Пригласить пользователя</h2>
+          <form id="invite-create-form"><div class="field-row"><label>Email <input type="email" id="invite-email" required /></label><label>Роль <select id="invite-role"><option value="editor">Редактор</option><option value="viewer">Наблюдатель</option></select></label></div><button type="submit">Отправить приглашение</button></form>
+        </section>
+        <section class="list-block stack" id="login-history-panel"><h2>История входов</h2><div id="login-history"></div></section>
       </div>
     </div>
 
+    <script src="security.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

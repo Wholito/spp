@@ -87,6 +87,12 @@
           </div>
         </div>
         <p id="day-line" class="day-line"></p>
+        <div id="task-search" class="field-row">
+          <label>Поиск <input id="search-query" type="search" placeholder="Название или описание" /></label>
+          <label>Статус <select id="search-status"><option value="">Все</option><option value="todo">К выполнению</option><option value="in_progress">В работе</option><option value="done">Готово</option></select></label>
+          <label>Приоритет <select id="search-priority"><option value="">Любой</option><option value="low">Низкий</option><option value="medium">Средний</option><option value="high">Высокий</option></select></label>
+          <label>Срок <select id="search-due"><option value="">Любой</option><option value="today">Сегодня</option><option value="late">Просрочен</option></select></label>
+        </div>
         <div id="tasks" class="tasks"></div>
         <div id="board" class="board hidden">
           <section class="column" data-status="todo">
@@ -103,8 +109,14 @@
           </section>
         </div>
       </section>
+      <section class="list-block" aria-labelledby="trash-title">
+        <div class="list-head"><h2 id="trash-title">Корзина</h2><button type="button" class="secondary" id="trash-toggle">Показать</button></div>
+        <div id="trash-list" class="tasks hidden"></div>
+      </section>
     </div>
 
+    <script src="search.js"></script>
+    <script src="trash.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

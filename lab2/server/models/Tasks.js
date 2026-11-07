@@ -38,6 +38,7 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    deletedAt: { type: Date, default: null },
     attachment: {
       originalName: { type: String, default: null },
       storedName: { type: String, default: null },

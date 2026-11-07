@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { body, param, validationResult } = require('express-validator');
 const { Task, STATUSES, PRIORITIES } = require('../models/Tasks');
+const trashRouter = require('./trash');
 
 const router = express.Router();
 
@@ -126,9 +127,11 @@ const buildPayload = (bodyData, file, existing) => {
   return payload;
 };
 
+router.use('/trash', trashRouter);
+
 router.get('/', async (_req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ deletedAt: null }).sort({ createdAt: -1 });
     return res.status(200).json(tasks);
   } catch (err) {
     console.error(err);
@@ -140,7 +143,7 @@ router.get('/:id', idValidator, async (req, res) => {
   if (collectErrors(req, res)) return;
 
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, deletedAt: null });
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
@@ -180,7 +183,7 @@ router.put('/:id', handleUpload, idValidator, taskValidators, async (req, res) =
   }
 
   try {
-    const existing = await Task.findById(req.params.id);
+    const existing = await Task.findOne({ _id: req.params.id, deletedAt: null });
     if (!existing) {
       if (req.file) removeFile(req.file.filename);
       return res.status(404).json({ error: 'Task not found' });
@@ -214,12 +217,15 @@ router.delete('/:id', idValidator, async (req, res) => {
   if (collectErrors(req, res)) return;
 
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      { $set: { deletedAt: new Date() } },
+      { new: true }
+    );
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
-    removeFile(task.attachment?.storedName);
-    return res.status(200).json({ message: 'Task deleted', id: task._id });
+    return res.status(200).json({ message: 'Task moved to trash', id: task._id });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Failed to delete task' });

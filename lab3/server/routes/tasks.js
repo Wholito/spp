@@ -145,6 +145,22 @@ router.get(
 );
 
 router.get(
+  '/:id/attachment',
+  idValidator,
+  validate,
+  asyncRoute(async (req, res) => {
+    const task = await Task.findById(req.params.id);
+    if (!task || !task.attachment?.storedName) {
+      throw new HttpError(404, 'Файл не найден', { code: 'NOT_FOUND' });
+    }
+    const filePath = path.join(uploadsDir, path.basename(task.attachment.storedName));
+    if (!fs.existsSync(filePath)) throw new HttpError(404, 'Файл не найден', { code: 'NOT_FOUND' });
+    res.setHeader('Content-Type', task.attachment.mimeType || 'application/octet-stream');
+    res.download(filePath, task.attachment.originalName);
+  })
+);
+
+router.get(
   '/:id',
   idValidator,
   validate,

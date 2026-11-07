@@ -1,9 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
+const HttpError = require('./httpError');
 
-const outboxDir = path.join(__dirname, '..', 'outbox');
 let transportPromise = null;
 let fromAddress = '';
 
@@ -23,18 +21,7 @@ const buildTransport = async () => {
     });
   }
 
-  const account = await nodemailer.createTestAccount();
-  fromAddress = 'Task Desk <no-reply@taskdesk.local>';
-  logger.info('mail_transport_ready', { mode: 'ethereal', user: account.user });
-  return nodemailer.createTransport({
-    host: account.smtp.host,
-    port: account.smtp.port,
-    secure: account.smtp.secure,
-    auth: { user: account.user, pass: account.pass },
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 8000,
-  });
+  throw new Error('SMTP_HOST is required for email delivery');
 };
 
 const getTransport = () => {
@@ -47,11 +34,15 @@ const getTransport = () => {
   return transportPromise;
 };
 
-const writeOutbox = async (entry) => {
-  fs.mkdirSync(outboxDir, { recursive: true });
-  const file = path.join(outboxDir, `${Date.now()}-${entry.to.replace(/[^a-z0-9@._-]/gi, '_')}.json`);
-  fs.writeFileSync(file, JSON.stringify(entry, null, 2));
-  return file;
+const sendMessage = async ({ to, subject, text }) => {
+  try {
+    const transport = await getTransport();
+    const info = await transport.sendMail({ from: fromAddress, to, subject, text });
+    logger.info('mail_sent', { messageId: info.messageId });
+  } catch (err) {
+    logger.error('mail_failed', { message: err.message });
+    throw new HttpError(503, 'Почта временно недоступна', { code: 'MAIL_UNAVAILABLE' });
+  }
 };
 
 const sendPasswordReset = async ({ to, resetUrl }) => {
@@ -62,22 +53,7 @@ const sendPasswordReset = async ({ to, resetUrl }) => {
     'Если вы не запрашивали восстановление, проигнорируйте это письмо.',
   ].join('\n\n');
 
-  try {
-    const transport = await getTransport();
-    const info = await transport.sendMail({
-      from: fromAddress,
-      to,
-      subject,
-      text,
-    });
-    const preview = nodemailer.getTestMessageUrl(info) || null;
-    logger.info('password_reset_sent', { to, messageId: info.messageId, preview });
-    return { delivered: true, preview, resetUrl: null };
-  } catch (err) {
-    const file = await writeOutbox({ to, subject, text, resetUrl, error: err.message, at: new Date().toISOString() });
-    logger.error('password_reset_failed', { to, message: err.message, outbox: file });
-    return { delivered: false, preview: null, resetUrl };
-  }
+  await sendMessage({ to, subject, text });
 };
 
-module.exports = { sendPasswordReset };
+module.exports = { sendPasswordReset, sendMessage };

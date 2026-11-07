@@ -6,7 +6,7 @@ class HttpError extends Error {
     this.code = extras.code || 'ERROR';
     this.details = extras.details;
     this.headers = extras.headers || null;
-    this.expose = status < 500;
+    this.expose = status < 500 || status === 503;
   }
 }
 

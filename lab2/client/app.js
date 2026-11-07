@@ -242,15 +242,15 @@
     viewBoardBtn.classList.toggle('active', enabled);
   };
 
-  const loadTasks = async () => {
+  const loadTasks = async (retainAlert = false) => {
     try {
       const response = await fetch(API_BASE);
       if (!response.ok) {
         throw new Error(await parseError(response));
       }
       tasksCache = await response.json();
-      renderTasks(tasksCache);
-      hideAlert();
+      renderTasks(window.TaskSearch.filter(tasksCache));
+      if (!retainAlert) hideAlert();
     } catch (err) {
       showAlert(networkErrorMessage(err) || 'Не удалось загрузить задачи');
       tasksEl.innerHTML = '<div class="empty">Ошибка загрузки</div>';
@@ -292,7 +292,7 @@
 
       showAlert(isEdit ? 'Задача обновлена' : 'Задача создана', 'success');
       resetForm();
-      await loadTasks();
+      await loadTasks(true);
     } catch (err) {
       showAlert(networkErrorMessage(err) || 'Не удалось сохранить задачу');
     } finally {
@@ -323,7 +323,7 @@
       const response = await fetch(`${API_BASE}/${id}`, { method: 'PUT', body: formData });
       if (!response.ok) throw new Error(await parseError(response));
       showAlert(status === 'done' ? 'Карточка в колонке «Готово»' : 'Карточка перенесена', 'success');
-      await loadTasks();
+      await loadTasks(true);
     } catch (err) {
       showAlert(networkErrorMessage(err) || 'Не удалось перенести карточку');
       renderTasks(tasksCache);
@@ -353,7 +353,7 @@
     }
 
     if (button.dataset.action === 'delete') {
-      if (!window.confirm('Удалить задачу?')) return;
+      if (!window.confirm('Переместить задачу в корзину?')) return;
 
       try {
         const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
@@ -361,8 +361,9 @@
           throw new Error(await parseError(response));
         }
         if (editingId === id) resetForm();
-        showAlert('Задача удалена', 'success');
-        await loadTasks();
+        showAlert('Задача в корзине', 'success');
+        await loadTasks(true);
+        await window.TaskTrash.refresh();
       } catch (err) {
         showAlert(networkErrorMessage(err) || 'Не удалось удалить задачу');
       }
@@ -413,6 +414,9 @@
 
   viewListBtn.addEventListener('click', () => setBoardMode(false));
   viewBoardBtn.addEventListener('click', () => setBoardMode(true));
+
+  window.TaskSearch.onChange(() => renderTasks(window.TaskSearch.filter(tasksCache)));
+  window.TaskTrash.init(loadTasks, (err) => showAlert(networkErrorMessage(err)));
 
   loadTasks();
 })();
