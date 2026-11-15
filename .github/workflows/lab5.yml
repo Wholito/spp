@@ -1,0 +1,23 @@
+name: lab5
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lab5:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lab5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: lab5/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: docker compose config --quiet

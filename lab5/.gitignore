@@ -1,0 +1,6 @@
+node_modules/
+data/*.sqlite*
+data/*.tmp
+data/import.lock
+data/cache/
+data/import-report.json

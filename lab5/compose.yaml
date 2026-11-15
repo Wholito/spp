@@ -1,0 +1,66 @@
+x-service: &service
+  build: .
+  restart: unless-stopped
+  volumes:
+    - atlas-data:/app/data
+  init: true
+  mem_limit: 512m
+  cpus: 1.0
+
+services:
+  importer:
+    build: .
+    command: ["node", "scripts/import.js"]
+    volumes:
+      - atlas-data:/app/data
+    restart: "no"
+  countries:
+    <<: *service
+    command: ["node", "src/subgraph.js", "countries"]
+    environment:
+      SERVICE_HOST: 0.0.0.0
+      PORT: 4101
+    depends_on:
+      importer:
+        condition: service_completed_successfully
+  cities:
+    <<: *service
+    command: ["node", "src/subgraph.js", "cities"]
+    environment:
+      SERVICE_HOST: 0.0.0.0
+      PORT: 4102
+    depends_on:
+      importer:
+        condition: service_completed_successfully
+  universities:
+    <<: *service
+    command: ["node", "src/subgraph.js", "universities"]
+    environment:
+      SERVICE_HOST: 0.0.0.0
+      PORT: 4103
+    depends_on:
+      importer:
+        condition: service_completed_successfully
+  gateway:
+    <<: *service
+    command: ["node", "src/gateway.js"]
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4100
+      COUNTRIES_URL: http://countries:4101/graphql
+      CITIES_URL: http://cities:4102/graphql
+      UNIVERSITIES_URL: http://universities:4103/graphql
+    ports:
+      - "4100:4100"
+    depends_on:
+      - countries
+      - cities
+      - universities
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4100/graphql',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:'{ __typename }'})}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  atlas-data:

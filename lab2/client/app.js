@@ -15,7 +15,6 @@
   const tasksEl = document.getElementById('tasks');
   const boardEl = document.getElementById('board');
   const dayLineEl = document.getElementById('day-line');
-  const alertEl = document.getElementById('alert');
   const appEl = document.querySelector('.app');
   const viewListBtn = document.getElementById('view-list');
   const viewBoardBtn = document.getElementById('view-board');
@@ -38,15 +37,7 @@
   let tasksCache = [];
   let boardMode = false;
 
-  const showAlert = (message, type = 'error') => {
-    alertEl.textContent = message;
-    alertEl.className = `alert alert-${type}`;
-  };
-
-  const hideAlert = () => {
-    alertEl.className = 'alert hidden';
-    alertEl.textContent = '';
-  };
+  const { show: showAlert, hide: hideAlert } = window.TaskNotifications;
 
   const statusMessages = {
     400: 'Некорректные данные. Проверьте форму и попробуйте снова',

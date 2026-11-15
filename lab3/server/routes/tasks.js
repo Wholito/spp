@@ -134,7 +134,7 @@ const buildPayload = (bodyData, file, existing) => {
 
 const loadTask = async (id) => Task.findById(id).populate('owner', 'name');
 
-router.use(requireAuth);
+какrouter.use(requireAuth);
 
 router.get(
   '/',

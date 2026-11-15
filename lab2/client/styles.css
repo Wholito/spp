@@ -439,13 +439,44 @@ button.secondary:hover {
 }
 
 .alert {
-  margin-bottom: 14px;
-  padding: 12px 14px;
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 12px 12px 16px;
   border: 1px solid transparent;
   border-radius: 12px;
   font-size: 0.92rem;
   font-weight: 500;
+  box-shadow: 0 12px 32px rgba(21, 32, 40, 0.16);
   animation: fade-in 0.25s ease both;
+}
+
+#alert-message {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.alert-close {
+  flex: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alert-close:hover,
+.alert-close:focus-visible {
+  background: rgba(21, 32, 40, 0.1);
 }
 
 .alert-error {

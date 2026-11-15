@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202b29">
+  <title>Атлас · Образование без границ</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Атлас, главная"><span class="brand-icon">а</span> атлас<span class="brand-dot">.</span></a>
+    <div class="sidebar-label">ОБРАЗОВАНИЕ БЕЗ ГРАНИЦ</div>
+    <nav aria-label="Разделы">
+      <button data-tab="universities" class="nav-button active"><span>◈</span> Университеты <small id="nav-count">—</small></button>
+      <button data-tab="countries" class="nav-button"><span>◎</span> Страны</button>
+      <button data-tab="cities" class="nav-button"><span>▦</span> Города</button>
+      <button data-tab="favorites" class="nav-button"><span>☆</span> Избранное</button>
+      <div class="nav-divider"></div>
+      <div class="sidebar-label">ИССЛЕДОВАТЬ ДАННЫЕ</div>
+      <button data-tab="sources" class="nav-button"><span>↙</span> Источники</button>
+      <button data-tab="monitor" class="nav-button"><span>⌁</span> Мониторинг</button>
+      <button data-tab="explorer" class="nav-button"><span>⌘</span> GraphQL Explorer</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="live-dot"></span> Три источника. Один атлас.<p>СПП · Лабораторная работа 05<br>GraphQL Federation</p></div>
+  </aside>
+  <main>
+    <header class="topbar"><span>Открытые данные <span class="breadcrumb">/</span> <span id="breadcrumb">Университеты</span></span><span class="version">EDUCATION ATLAS <b>01</b></span></header>
+    <section class="hero"><div><span class="eyebrow">МИР БЛИЖЕ, ЧЕМ КАЖЕТСЯ</span><h1 id="title">Найдите своё место<br>в мире знаний<span>.</span></h1><p id="subtitle">Университеты, города и страны — связанные открытые данные в одном пространстве.</p></div><div class="orbit" aria-hidden="true"><span>✳</span><div>EXPLORE<br>YOUR WORLD</div></div></section>
+    <section class="stats" aria-label="Объём каталога"><div><span id="stat-universities">—</span><p>университетов</p></div><div><span id="stat-countries">—</span><p>стран и территорий</p></div><div><span id="stat-cities">—</span><p>городов</p></div><div><span id="stat-total">—</span><p>реальных записей</p></div></section>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <section id="catalog">
+      <div class="section-heading"><h2 id="catalog-title">Каталог университетов</h2><span id="result-count" class="muted">Загрузка…</span></div>
+      <form id="filters" class="filters">
+        <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название, регион или домен…" aria-label="Поиск" maxlength="120"></label>
+        <select id="country-filter" aria-label="Страна"><option value="">Все страны</option></select>
+        <select id="region-filter" aria-label="Часть света" hidden><option value="">Все части света</option><option>Africa</option><option>Americas</option><option>Antarctic</option><option>Asia</option><option>Europe</option><option>Oceania</option></select>
+        <select id="sort" aria-label="Сортировка"><option value="NAME_ASC">Название: А → Я</option><option value="NAME_DESC">Название: Я → А</option></select>
+        <select id="size" aria-label="Записей на странице"><option value="12">12 записей</option><option value="24">24 записи</option><option value="48">48 записей</option></select>
+        <button class="reset" type="reset" title="Сбросить фильтры">↺</button>
+      </form>
+      <div class="query-options"><span>Поля запроса</span><label><input id="include-country" type="checkbox" checked> Страна</label><label id="domains-option"><input id="include-domains" type="checkbox" checked> Домены</label><button id="show-query" class="text-button">Показать GraphQL ↗</button></div>
+      <pre id="query-preview" hidden></pre>
+      <div id="results" class="results" aria-live="polite"></div>
+      <div class="pagination"><button id="previous" class="secondary">← Назад</button><span id="page-label">Страница 1</span><button id="next" class="secondary">Далее →</button></div>
+    </section>
+    <section id="sources-panel" hidden><div class="section-heading"><h2>Откуда берутся данные</h2><button id="refresh-sources" class="secondary">Обновить сведения ↻</button></div><p class="section-description">Автоматический импорт из трёх независимых открытых проектов. Данные хранятся локально и доступны без подключения к источникам.</p><div id="sources-content"></div></section>
+    <section id="monitor-panel" hidden><div class="section-heading"><h2>Пульс системы</h2><button id="refresh-monitor" class="secondary">Обновить ↻</button></div><p class="section-description">Метрики шлюза за текущий запуск. P95 рассчитан по последним 100 запросам; последние 20 трассировок показывают обращения к сервисам.</p><div id="monitor-content"></div></section>
+    <section id="explorer-panel" hidden><div class="section-heading"><h2>GraphQL Explorer</h2><select id="example" aria-label="Пример запроса"><option value="nested">Вложенность и федерация</option><option value="search">Поиск с переменными</option><option value="aliases">Алиасы и директивы</option><option value="mutation">Мутация: избранное</option><option value="monitor">Мониторинг</option></select></div><div class="editor-grid"><label>ЗАПРОС<textarea id="query-editor" spellcheck="false" rows="19" aria-label="GraphQL запрос"></textarea></label><label>ПЕРЕМЕННЫЕ (JSON)<textarea id="variables-editor" spellcheck="false" rows="19" aria-label="Переменные запроса"></textarea></label></div><div class="run-row"><button id="execute" class="primary">Выполнить запрос →</button><span id="query-timing" class="muted"></span></div><pre id="explorer-result">Результат появится здесь.</pre></section>
+    <footer><span>Атлас · Открывайте возможности</span><span>Открытые данные · GraphQL · 2026</span></footer>
+  </main>
+  <dialog id="details"><div class="dialog-top"><span class="eyebrow">ПОДРОБНЕЕ</span><button id="close-details" class="icon-button" aria-label="Закрыть">×</button></div><div id="details-content"></div></dialog>
+</body>
+</html>

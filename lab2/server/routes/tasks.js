@@ -36,7 +36,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!ALLOWED_MIME.has(file.mimetype)) {
+    if (!ALLOWED_MIME.has(file.mimetype  )) {
       return cb(new Error('Unsupported file type. Allowed: images, PDF, TXT, DOC, DOCX'));
     }
     return cb(null, true);

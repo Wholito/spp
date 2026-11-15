@@ -19,23 +19,27 @@ services:
     container_name: spp-lab3-server
     restart: unless-stopped
     environment:
-      PORT: 3000
-      MONGO_URI: mongodb://mongo:27017/spp_lab3
-      JWT_SECRET: lab3-temporary-key
-      JWT_ACCESS_TTL: 15m
-      JWT_REFRESH_TTL: 7d
-      MAX_SESSIONS: "5"
-      APP_URL: http://localhost:8080
+      PORT: ${PORT:-3000}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/spp_lab3}
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      MAX_SESSIONS: ${MAX_SESSIONS:-5}
+      APP_URL: ${APP_URL:-http://localhost:8080}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
+      GMAIL_USER: ${GMAIL_USER:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       DEMO_SEED: ${DEMO_SEED:-false}
-      LOG_FILE: /app/logs/lab3.log
+      LOG_FILE: ${LOG_FILE:-/app/logs/lab3.log}
     volumes:
       - uploads_data:/app/uploads
       - ./server/logs:/app/logs
@@ -43,7 +47,7 @@ services:
       mongo:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     healthcheck:
       test:
         [

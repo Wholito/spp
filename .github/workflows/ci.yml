@@ -35,3 +35,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node --check ../client/app.js && node --check ../client/security.js
+      - name: Validate Docker Compose configuration
+        run: |
+          cp ../.env.example ../.env
+          docker compose --env-file ../.env -f ../docker-compose.yml config --quiet

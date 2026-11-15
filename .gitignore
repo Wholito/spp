@@ -1,0 +1,6 @@
+.env
+.env.*
+!.env.example
+**/node_modules/
+lab3/server/logs/
+lab3/server/uploads/

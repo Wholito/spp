@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./db');
 const tasksRouter = require('./routes/tasks');
+const { startTrashCleanup } = require('./trashCleanup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,7 @@ const start = async () => {
     app.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
     });
+    startTrashCleanup();
   } catch (err) {
     console.error('Failed to start server:', err.message);
     process.exit(1);

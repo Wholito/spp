@@ -14,14 +14,16 @@
   </head>
   <body>
     <div class="bg" aria-hidden="true"></div>
+    <div id="alert" class="alert hidden" role="alert" aria-atomic="true">
+      <span id="alert-message"></span>
+      <button type="button" id="alert-close" class="alert-close" aria-label="Закрыть уведомление">×</button>
+    </div>
     <div class="app">
       <header class="header">
         <p class="brand">Task Desk</p>
         <h1>Задачи</h1>
         <p class="lead">Список, файлы и доска: перетащите карточку, чтобы сменить статус.</p>
       </header>
-
-      <div id="alert" class="alert hidden" role="alert"></div>
 
       <section class="form-block" aria-labelledby="form-title">
         <h2 id="form-title">Новая задача</h2>
@@ -111,12 +113,14 @@
       </section>
       <section class="list-block" aria-labelledby="trash-title">
         <div class="list-head"><h2 id="trash-title">Корзина</h2><button type="button" class="secondary" id="trash-toggle">Показать</button></div>
+        <p class="hint">Задачи и их файлы удаляются навсегда через 30 дней после перемещения в корзину.</p>
         <div id="trash-list" class="tasks hidden"></div>
       </section>
     </div>
 
     <script src="search.js"></script>
     <script src="trash.js"></script>
+    <script src="notifications.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

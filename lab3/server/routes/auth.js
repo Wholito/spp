@@ -7,7 +7,7 @@ const { Session } = require('../models/Session');
 const { PasswordReset } = require('../models/PasswordReset');
 const { passwordOk, hashPassword, verifyPassword } = require('../lib/passwords');
 const { sha256, hashesEqual, signAccess, signRefresh, verifyAccess, verifyRefresh, ttlToMs } = require('../lib/tokens');
-const { EMAIL_POLICY, IP_POLICY, FORGOT_POLICY, REGISTER_POLICY } = require('../lib/guards');
+const { EMAIL_POLICY, IP_POLICY, REGISTER_POLICY } = require('../lib/guards');
 const { assertOpen, recordFailures, clearGuards } = require('../lib/guardStore');
 const publicUser = require('../lib/publicUser');
 const clientIp = require('../lib/clientIp');
@@ -284,16 +284,6 @@ router.post(
   asyncRoute(async (req, res) => {
     const now = Date.now();
     const email = req.body.email.trim().toLowerCase();
-    const ip = clientIp(req);
-    await assertOpen([`forgot-email:${email}`, `forgot-ip:${ip}`], now);
-    await recordFailures(
-      [
-        { key: `forgot-email:${email}`, policy: FORGOT_POLICY },
-        { key: `forgot-ip:${ip}`, policy: FORGOT_POLICY },
-      ],
-      now
-    );
-
     const user = await User.findOne({ email });
     const body = {
       message: 'Если учётная запись существует, мы отправили письмо для восстановления доступа',
