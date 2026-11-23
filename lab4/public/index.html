@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Морской бой</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="features/ship-placement/ship-placement.css" />
+    <link rel="stylesheet" href="features/battle-replay/battle-replay.css" />
   </head>
   <body>
     <div class="shell">
@@ -81,6 +83,8 @@
             <section>
               <h2>Ваше море</h2>
               <div id="own-board" class="board"></div>
+              <div id="ship-rack" class="placement-rack" aria-label="Корабли для расстановки"></div>
+              <p id="placement-hint" class="placement-hint"></p>
             </section>
             <section id="enemy-wrap">
               <h2>Море соперника</h2>
@@ -91,7 +95,7 @@
             <div id="dock" class="dock">
               <p id="next-ship"></p>
               <div class="bar-actions">
-                <button type="button" id="dir-btn" class="ghost">Горизонтально</button>
+                <button type="button" id="dir-btn" class="ghost">Повернуть · R</button>
                 <button type="button" id="undo-btn" class="ghost">Убрать последний</button>
                 <button type="button" id="random-btn" class="ghost">Случайно</button>
                 <button type="button" id="ready-btn">В бой</button>
@@ -104,8 +108,47 @@
             <div id="log" class="log"></div>
           </aside>
         </div>
+        <section id="replay-feature" class="replay-feature">
+          <h2>Повтор боя</h2>
+          <p>Сохранённые завершённые бои этой комнаты. В повторе открыты оба флота.</p>
+          <p id="replay-empty">Первый повтор появится после завершения нового боя.</p>
+          <div class="replay-picker">
+            <select id="replay-select" aria-label="Завершённый бой" disabled></select>
+            <button type="button" id="replay-open" disabled>Посмотреть повтор</button>
+          </div>
+        </section>
       </section>
     </div>
+    <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title">
+      <div class="replay-heading">
+        <h2 id="replay-title">Повтор завершённого боя</h2>
+        <button type="button" id="replay-close" class="ghost" aria-label="Закрыть повтор">Закрыть ×</button>
+      </div>
+      <p id="replay-summary" class="replay-summary"></p>
+      <div id="replay-boards" class="replay-boards"></div>
+      <p id="replay-status" class="replay-status" role="status"></p>
+      <label class="replay-timeline">
+        <span id="replay-progress">Ход 0</span>
+        <input id="replay-timeline" type="range" min="0" max="0" value="0" disabled aria-label="Выбрать ход" />
+      </label>
+      <div class="replay-controls">
+        <button type="button" id="replay-start" class="ghost" disabled aria-label="К началу">⇤</button>
+        <button type="button" id="replay-back" class="ghost" disabled aria-label="Предыдущий ход">←</button>
+        <button type="button" id="replay-play" disabled aria-pressed="false">▶ Воспроизвести</button>
+        <button type="button" id="replay-next" class="ghost" disabled aria-label="Следующий ход">→</button>
+        <button type="button" id="replay-end" class="ghost" disabled aria-label="К концу">⇥</button>
+        <select id="replay-speed" disabled aria-label="Скорость повтора">
+          <option value="0.5">0,5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </div>
+    </dialog>
+    <script src="features/ship-placement/placement-model.js"></script>
+    <script src="features/ship-placement/ship-placement.js"></script>
+    <script src="features/battle-replay/replay-model.js"></script>
+    <script src="features/battle-replay/battle-replay.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,17 +1,7 @@
 const crypto = require('crypto');
-
-const SIZE = 10;
-const FLEET = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
-
-const emptyGrid = () => {
-  const grid = [];
-  for (let y = 0; y < SIZE; y += 1) {
-    for (let x = 0; x < SIZE; x += 1) {
-      grid.push({ id: `${x}:${y}`, x, y, shipId: null, shot: null, version: 0 });
-    }
-  }
-  return grid;
-};
+const { SIZE, FLEET, emptyGrid, lengthsLeft, footprint, paintShips, clearFleet, buildRandomFleet } = require('./fleet');
+const { placeOrMoveShip } = require('./features/ship-placement');
+const { startRecording, recordShot, finishRecording, replaySummaries } = require('./features/battle-replay');
 
 const createRoom = (code, now) => ({
   code,
@@ -25,6 +15,8 @@ const createRoom = (code, now) => ({
   players: [],
   log: [],
   applied: [],
+  battle: null,
+  replays: [],
 });
 
 const cleanName = (value) => {
@@ -59,66 +51,6 @@ const addPlayer = (room, name, now) => {
 };
 
 const foeOf = (room, playerId) => room.players.find((item) => item.id !== playerId) || null;
-
-const lengthsLeft = (player) => {
-  const left = FLEET.slice();
-  for (const ship of player.ships) {
-    const index = left.indexOf(ship.length);
-    if (index >= 0) left.splice(index, 1);
-  }
-  return left;
-};
-
-const blockedCells = (ships) => {
-  const blocked = new Set();
-  for (const ship of ships) {
-    for (const id of ship.cells) {
-      const [x, y] = id.split(':').map(Number);
-      for (let dx = -1; dx <= 1; dx += 1) {
-        for (let dy = -1; dy <= 1; dy += 1) {
-          blocked.add(`${x + dx}:${y + dy}`);
-        }
-      }
-    }
-  }
-  return blocked;
-};
-
-const footprint = (ships, x, y, length, dir) => {
-  if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(length)) return null;
-  if (dir !== 'h' && dir !== 'v') return null;
-  const cells = [];
-  for (let step = 0; step < length; step += 1) {
-    const cx = dir === 'h' ? x + step : x;
-    const cy = dir === 'v' ? y + step : y;
-    if (cx < 0 || cy < 0 || cx >= SIZE || cy >= SIZE) return null;
-    cells.push(`${cx}:${cy}`);
-  }
-  const blocked = blockedCells(ships);
-  if (cells.some((id) => blocked.has(id))) return null;
-  return cells;
-};
-
-const paintShips = (player) => {
-  for (const cell of player.grid) cell.shipId = null;
-  for (const ship of player.ships) {
-    for (const id of ship.cells) {
-      const cell = player.grid.find((item) => item.id === id);
-      if (cell) cell.shipId = ship.id;
-    }
-  }
-};
-
-const clearFleet = (player) => {
-  player.ships = [];
-  player.ready = false;
-  player.fleetVersion = 0;
-  for (const cell of player.grid) {
-    cell.shipId = null;
-    cell.shot = null;
-    cell.version = 0;
-  }
-};
 
 const remember = (room, action, result) => {
   if (action.actionId && (result.ok || result.conflict)) {
@@ -156,34 +88,6 @@ const settleShot = (player, cell) => {
 };
 
 const allSunk = (player) => player.ships.length > 0 && player.ships.every((ship) => ship.alive === false);
-
-const buildRandomFleet = () => {
-  for (let layout = 0; layout < 40; layout += 1) {
-    const ships = [];
-    let failed = false;
-    for (const length of FLEET) {
-      let cells = null;
-      for (let attempt = 0; attempt < 100 && !cells; attempt += 1) {
-        const dir = Math.random() < 0.5 ? 'h' : 'v';
-        const x = Math.floor(Math.random() * SIZE);
-        const y = Math.floor(Math.random() * SIZE);
-        cells = footprint(ships, x, y, length, dir);
-      }
-      if (!cells) {
-        failed = true;
-        break;
-      }
-      ships.push({
-        id: crypto.randomBytes(4).toString('hex'),
-        length,
-        cells,
-        alive: true,
-      });
-    }
-    if (!failed) return ships;
-  }
-  return null;
-};
 
 const applyAction = (room, playerId, action, now) => {
   if (!action || typeof action.actionId !== 'string' || action.actionId.length < 8 || action.actionId.length > 80) {
@@ -237,7 +141,7 @@ const applyAction = (room, playerId, action, now) => {
     return remember(room, action, { ok: true });
   }
 
-  if (action.op === 'place' || action.op === 'unplace' || action.op === 'random' || action.op === 'ready' || action.op === 'unready') {
+  if (action.op === 'place' || action.op === 'move' || action.op === 'unplace' || action.op === 'random' || action.op === 'ready' || action.op === 'unready') {
     if (room.phase !== 'place') return { ok: false, code: 'NOT_PLACE' };
     if (player.fleetVersion !== action.expectedVersion) {
       return remember(room, action, {
@@ -289,6 +193,7 @@ const applyAction = (room, playerId, action, now) => {
       if (both) {
         room.phase = 'battle';
         room.turn = room.players[0].id;
+        startRecording(room, now);
         pushLog(room, 'Оба флота в море', now);
       } else {
         pushLog(room, `${player.name} готов к бою`, now);
@@ -296,19 +201,11 @@ const applyAction = (room, playerId, action, now) => {
       return remember(room, action, { ok: true });
     }
 
-    const next = lengthsLeft(player)[0];
-    const cells = footprint(player.ships, action.x, action.y, next, action.dir);
-    if (!next || !cells) return { ok: false, code: 'BAD_PLACE' };
-    player.ships.push({
-      id: crypto.randomBytes(4).toString('hex'),
-      length: next,
-      cells,
-      alive: true,
-    });
-    paintShips(player);
+    const placement = placeOrMoveShip(player, action);
+    if (!placement.ok) return placement;
     player.fleetVersion += 1;
     room.version += 1;
-    pushLog(room, `${player.name} ставит корабль на ${next}`, now);
+    pushLog(room, `${player.name} ${placement.moved ? 'перемещает' : 'ставит'} корабль на ${placement.length}`, now);
     return remember(room, action, { ok: true });
   }
 
@@ -330,6 +227,7 @@ const applyAction = (room, playerId, action, now) => {
   if (cell.shot) return { ok: false, code: 'TAKEN' };
 
   const result = settleShot(foe, cell);
+  recordShot(room, playerId, foe.id, cell.id, result, now);
   cell.version += 1;
   room.version += 1;
   if (result === 'miss') {
@@ -342,6 +240,7 @@ const applyAction = (room, playerId, action, now) => {
     room.turn = null;
     room.winnerId = playerId;
     player.score += 1;
+    finishRecording(room, now);
     pushLog(room, `${player.name} побеждает`, now);
   } else {
     pushLog(room, `${player.name}: корабль потоплен`, now);
@@ -391,7 +290,9 @@ const publicRoom = (room, viewerId) => {
       ? {
           fleetVersion: self.fleetVersion,
           ready: self.ready,
-          cells: self.grid.map((cell) => viewCell(cell, true)),
+          ships: self.ships.map((ship) => ({ id: ship.id, length: ship.length, cells: [...ship.cells] })),
+          remaining: lengthsLeft(self),
+          cells: self.grid.map((cell) => ({ ...viewCell(cell, true), shipId: cell.shipId })),
         }
       : null,
     enemy: foe
@@ -402,6 +303,7 @@ const publicRoom = (room, viewerId) => {
         }
       : null,
     log: room.log.slice(-12),
+    replays: replaySummaries(room),
   };
 };
 

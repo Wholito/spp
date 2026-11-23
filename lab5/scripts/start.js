@@ -9,7 +9,6 @@ catch { await importData(); }
 
 const children = new Map();
 let stopping = false;
-let refresh;
 function launch(name, file, args = []) {
   const env = { ...process.env };
   if (name !== 'gateway') env.PORT = String(ports[name]);
@@ -27,7 +26,6 @@ function launch(name, file, args = []) {
 function stop() {
   if (stopping) return;
   stopping = true;
-  clearInterval(refresh);
   for (const child of children.values()) child.kill();
 }
 process.on('SIGINT', stop);
@@ -43,7 +41,4 @@ for (let attempt = 0; attempt < 60; attempt++) {
   if (results.every(Boolean) || stopping) break;
   await new Promise(resolve => setTimeout(resolve, 500));
 }
-if (!stopping) {
-  launch('gateway', 'src/gateway.js');
-  refresh = setInterval(() => importData().catch(error => console.error(`Обновление: ${error.message}`)), 24 * 60 * 60 * 1000);
-}
+if (!stopping) launch('gateway', 'src/gateway.js');

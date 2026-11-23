@@ -19,6 +19,7 @@
     ROOM_FULL: 'В комнате уже два капитана',
     UNKNOWN_TOKEN: 'Сохранённая партия не найдена на сервере',
     NO_CELL: 'Нет такой клетки',
+    NO_SHIP: 'Этот корабль уже изменён. Дождитесь обновления поля.',
     BAD_VERSION: 'Ход устарел',
     BAD_ACTION: 'Ход отклонён',
   };
@@ -58,6 +59,8 @@
   };
 
   const waiters = new Map();
+  let placement;
+  let replay;
   let attempt = 0;
   let reconnectTimer = null;
   let syncing = false;
@@ -171,7 +174,7 @@
     if (room.phase === 'place') {
       if (!room.enemy) return 'Ждём второго капитана';
       if (selfPlayer()?.ready) return 'Вы готовы. Ждём соперника';
-      return room.nextShip ? `Следующий корабль: ${room.nextShip}` : 'Флот собран';
+      return room.nextShip ? 'Расставьте флот' : 'Флот собран';
     }
     if (room.phase === 'over') {
       if (room.winnerId === state.playerId) return 'Победа';
@@ -212,8 +215,11 @@
   const render = () => {
     renderStatus();
     renderNote();
-    dirBtn.textContent = state.dir === 'h' ? 'Горизонтально' : 'Вертикально';
+    dirBtn.textContent = 'Повернуть · R';
+    dirBtn.title = state.dir === 'h' ? 'Новые корабли: горизонтально' : 'Новые корабли: вертикально';
+    replay?.update(state.room);
     if (!state.room) {
+      placement?.update();
       showLobby();
       return;
     }
@@ -228,6 +234,7 @@
       conflictEl.classList.remove('hidden');
     }
     drawBoard(ownEl, state.room.own?.cells || []);
+    placement?.update();
     if (state.room.enemy) {
       enemyWrap.classList.remove('hidden');
       drawBoard(enemyEl, state.room.enemy.cells);
@@ -244,7 +251,7 @@
     nextShipEl.textContent = selfPlayer()?.ready
       ? 'Расстановка сдана'
       : state.room.nextShip
-        ? `Поставьте корабль на ${state.room.nextShip} ${state.room.nextShip === 1 ? 'клетку' : 'клетки'}`
+        ? `Осталось поставить кораблей: ${state.room.own?.remaining?.length ?? '—'}`
         : 'Все корабли на поле';
     playersEl.innerHTML = state.room.players
       .map(
@@ -286,6 +293,10 @@
     }
     if (room.phase !== 'place') {
       state.note = reasons.NOT_PLACE;
+      return false;
+    }
+    if (placement && !placement.applyLocal(action, room)) {
+      state.note = reasons.BAD_PLACE;
       return false;
     }
     room.own.fleetVersion += 1;
@@ -365,6 +376,7 @@
   };
 
   const onMessage = (msg) => {
+    if (replay?.handleMessage(msg)) return;
     if (msg.type === 'welcome' || msg.type === 'state') {
       if (msg.token) state.token = msg.token;
       if (msg.playerId) state.playerId = msg.playerId;
@@ -498,9 +510,7 @@
   });
 
   dirBtn.addEventListener('click', () => {
-    state.dir = state.dir === 'h' ? 'v' : 'h';
-    persist();
-    render();
+    placement.rotate();
   });
 
   const fleetAction = (op) => {
@@ -525,20 +535,6 @@
       actionId: crypto.randomUUID(),
       op: 'again',
       expectedVersion: state.room.version,
-    });
-  });
-
-  ownEl.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cell]');
-    if (!button || !state.room?.own || state.room.phase !== 'place' || selfPlayer()?.ready) return;
-    const [x, y] = button.dataset.cell.split(':').map(Number);
-    perform({
-      actionId: crypto.randomUUID(),
-      op: 'place',
-      x,
-      y,
-      dir: state.dir,
-      expectedVersion: state.room.own.fleetVersion,
     });
   });
 
@@ -622,6 +618,14 @@
     if (state.online) sendRaw({ type: 'ping' });
   }, 25000);
 
+  placement = window.SeaFeatures.createShipPlacement({
+    board: ownEl,
+    getState: () => state,
+    perform,
+    setDirection: (dir) => { state.dir = dir; persist(); render(); },
+    notify: (text) => { state.note = text; renderNote(); },
+  });
+  replay = window.SeaFeatures.createBattleReplay({ getRoom: () => state.room, send: sendRaw, isOnline: () => state.online });
   restore();
   render();
   connect();

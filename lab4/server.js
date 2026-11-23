@@ -5,6 +5,7 @@ const { WebSocketServer } = require('ws');
 const { createStore } = require('./store');
 const { createPostgresStore } = require('./postgres-store');
 const { createRoom, cleanName, addPlayer, applyAction, publicRoom } = require('./game');
+const { getReplay } = require('./features/battle-replay');
 
 const PORT = Number(process.env.PORT || 8090);
 const publicDir = path.join(__dirname, 'public');
@@ -190,6 +191,13 @@ const handle = async (socket, msg) => {
     return;
   }
 
+  if (msg.type === 'replay') {
+    const room = socket.roomCode ? findRoom(socket.roomCode) : null;
+    const replay = getReplay(room, socket.playerId, msg.replayId);
+    send(socket, { type: 'replay', requestId: msg.requestId, replay, code: replay ? null : 'NO_REPLAY' });
+    return;
+  }
+
   if (msg.type === 'action') {
     const room = socket.roomCode ? findRoom(socket.roomCode) : null;
     if (!room || !socket.playerId) {
@@ -310,6 +318,7 @@ const start = async () => {
     room.applied = Array.isArray(room.applied) ? room.applied.slice(-200) : [];
     room.log = Array.isArray(room.log) ? room.log.slice(-30) : [];
     room.banner = room.banner && typeof room.banner.text === 'string' ? room.banner : { text: '', version: 0 };
+    room.replays = Array.isArray(room.replays) ? room.replays.slice(-10) : [];
     for (const player of room.players) player.connected = false;
   }
   indexTokens();

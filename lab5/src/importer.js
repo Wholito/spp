@@ -82,29 +82,51 @@ export async function importData({ offline = false } = {}) {
   try {
     await lock.writeFile(String(process.pid));
     const downloaded = await Promise.all(sources.map(source => download(source, offline)));
-    const countries = countryRows(downloaded[0].text);
-    const batches = [{ rows: countries, skipped: 0 }, cityRows(downloaded[1].text, countries), universityRows(downloaded[2].text, countries)];
-    const total = batches.reduce((sum, batch) => sum + batch.rows.length, 0);
-    if (total < 10000) throw new Error(`Недостаточно записей: ${total}. Требуется минимум 10000.`);
-    const importedAt = new Date().toISOString();
-    const report = sources.map((source, i) => ({ ...source, file: undefined, count: batches[i].rows.length, skipped: batches[i].skipped, importedAt, checksum: digest(downloaded[i].text), status: downloaded[i].status, error: downloaded[i].error }));
+    const checksums = downloaded.map(item => digest(item.text));
     db = openDatabase();
+    const previous = new Map(db.prepare('SELECT * FROM imports').all().map(item => [item.id, item]));
+    const changed = sources.map((source, index) => previous.get(source.id)?.checksum !== checksums[index]);
+    const updated = changed.some(Boolean);
+    const countries = updated ? countryRows(downloaded[0].text) : null;
+    const batches = [
+      changed[0] ? { rows: countries, skipped: 0 } : null,
+      changed[0] || changed[1] ? cityRows(downloaded[1].text, countries) : null,
+      changed[0] || changed[2] ? universityRows(downloaded[2].text, countries) : null,
+    ];
+    const importedAt = new Date().toISOString();
+    const report = sources.map((source, index) => {
+      const batch = batches[index];
+      const existing = previous.get(source.id);
+      return {
+        ...source, file: undefined, count: batch ? batch.rows.length : existing.count,
+        skipped: batch ? batch.skipped : existing.skipped, importedAt: batch ? importedAt : existing.importedAt,
+        checksum: checksums[index], status: downloaded[index].status, error: downloaded[index].error,
+      };
+    });
+    const total = report.reduce((sum, item) => sum + item.count, 0);
+    if (total < 10000) throw new Error(`Недостаточно записей: ${total}. Требуется минимум 10000.`);
     db.exec('BEGIN IMMEDIATE');
     try {
       for (let i = 0; i < sources.length; i++) {
         const table = sources[i].id;
-        db.exec(`DELETE FROM ${table}; DELETE FROM ${table}_fts;`);
-        const keys = Object.keys(batches[i].rows[0]).filter(key => key !== 'aliases');
-        const insert = db.prepare(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`);
-        const index = db.prepare(`INSERT INTO ${table}_fts (id, search) VALUES (?, ?)`);
-        for (const row of batches[i].rows) {
-          insert.run(...keys.map(key => row[key]));
-          index.run(row.id, row.search);
+        const batch = batches[i];
+        if (batch) {
+          if (!batch.rows.length) throw new Error(`${sources[i].name}: нет подходящих записей.`);
+          db.exec(`DELETE FROM ${table}; DELETE FROM ${table}_fts;`);
+          const keys = Object.keys(batch.rows[0]).filter(key => key !== 'aliases');
+          const insert = db.prepare(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`);
+          const index = db.prepare(`INSERT INTO ${table}_fts (id, search) VALUES (?, ?)`);
+          for (const row of batch.rows) {
+            insert.run(...keys.map(key => row[key]));
+            index.run(row.id, row.search);
+          }
         }
         const item = report[i];
         db.prepare('INSERT OR REPLACE INTO imports VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(item.id, item.name, item.url, item.homepage, item.license, item.count, item.skipped, item.importedAt, item.checksum, item.status, item.error);
       }
-      db.exec('DELETE FROM favorites WHERE universityId NOT IN (SELECT id FROM universities); COMMIT; ANALYZE;');
+      if (batches[2]) db.exec('DELETE FROM favorites WHERE universityId NOT IN (SELECT id FROM universities);');
+      if (updated) db.exec('ANALYZE;');
+      db.exec('COMMIT;');
     } catch (error) { db.exec('ROLLBACK'); throw error; }
     for (const item of downloaded) {
       if (!item.cacheFile) continue;
@@ -112,7 +134,7 @@ export async function importData({ offline = false } = {}) {
       await rename(`${item.cacheFile}.tmp`, item.cacheFile);
     }
     await writeFile(path.join(dataDir, 'import-report.json'), JSON.stringify({ total, importedAt, sources: report }, null, 2));
-    return { total, importedAt, sources: report };
+    return { total, importedAt, updated, sources: report };
   } finally {
     db?.close();
     await lock.close();

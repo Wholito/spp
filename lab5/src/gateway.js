@@ -1,5 +1,7 @@
 import http from 'node:http';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import express from 'express';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
@@ -12,15 +14,41 @@ import { schemas } from './schemas.js';
 import { root, serviceUrl } from './config.js';
 import { createTelemetry, loadControl } from './observability.js';
 
-export async function startGateway({ port = Number(process.env.PORT || 4100), host = process.env.HOST || '127.0.0.1' } = {}) {
+const runFile = promisify(execFile);
+
+export async function startGateway({
+  port = Number(process.env.PORT || 4100), host = process.env.HOST || '127.0.0.1',
+  refreshIntervalMs = 24 * 60 * 60 * 1000,
+} = {}) {
   const telemetry = createTelemetry();
+  let refreshInProgress;
+  function refreshSources() {
+    refreshInProgress ??= runFile(process.execPath, [path.join(root, 'scripts', 'import.js')], { windowsHide: true })
+      .then(({ stdout }) => {
+        const report = JSON.parse(stdout);
+        telemetry.invalidateCache();
+        return { updated: report.updated, unchecked: report.sources.filter(source => source.error).length };
+      })
+      .catch(error => {
+        console.error('Обновление источников:', error.stderr || error.message);
+        throw error;
+      })
+      .finally(() => { refreshInProgress = null; });
+    return refreshInProgress;
+  }
+
   const monitorDefs = parse(`
     type ServiceSpan { service: String!, durationMs: Float!, ok: Boolean! }
     type Trace { id: ID!, operation: String!, startedAt: String!, durationMs: Float!, error: Boolean!, cached: Boolean!, spans: [ServiceSpan!]! }
     type Monitor { requests: Int!, errors: Int!, rejected: Int!, active: Int!, cacheHits: Int!, cacheEntries: Int!, uptimeSeconds: Int!, p95Ms: Float!, traces: [Trace!]! }
     type Query { monitor: Monitor }
+    type SourceRefresh { updated: Boolean!, unchecked: Int! }
+    type Mutation { refreshSources: SourceRefresh }
   `);
-  const monitor = buildSubgraphSchema([{ typeDefs: monitorDefs, resolvers: { Query: { monitor: () => telemetry.snapshot() } } }]);
+  const monitor = buildSubgraphSchema([{ typeDefs: monitorDefs, resolvers: {
+    Query: { monitor: () => telemetry.snapshot() },
+    Mutation: { refreshSources },
+  } }]);
   const composed = composeServices([
     ...Object.entries(schemas).map(([name, typeDefs]) => ({ name, typeDefs, url: serviceUrl(name) })),
     { name: 'monitor', typeDefs: monitorDefs, url: 'http://monitor.internal/graphql' },
@@ -81,8 +109,19 @@ export async function startGateway({ port = Number(process.env.PORT || 4100), ho
     res.status(error.status || 500).json({ errors: [{ message: error.status === 413 ? 'Запрос превышает 64 КБ.' : 'Не удалось обработать запрос.' }] });
   });
   await new Promise((resolve, reject) => { httpServer.once('error', reject); httpServer.listen(port, host, resolve); });
+  const refreshTimer = setInterval(async () => {
+    if (refreshInProgress) return;
+    const result = await refreshSources().catch(() => null);
+    if (result) console.log(JSON.stringify({ event: 'scheduled_import', ...result }));
+  }, refreshIntervalMs).unref();
   console.log(JSON.stringify({ event: 'gateway_ready', url: `http://${host}:${httpServer.address().port}` }));
-  return { server, httpServer, telemetry, stop: () => server.stop() };
+  return {
+    server, httpServer, telemetry,
+    stop() {
+      clearInterval(refreshTimer);
+      return server.stop();
+    },
+  };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.join(root, 'src', 'gateway.js')) {

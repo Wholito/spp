@@ -41,6 +41,7 @@ export function createTelemetry() {
   let revision = 0;
   const telemetry = {
     state,
+    invalidateCache() { revision++; cache.clear(); },
     trace(operation = '') { return { id: randomUUID(), operation, startedAt: new Date().toISOString(), started: performance.now(), durationMs: 0, error: false, cached: false, spans: [] }; },
     finish(trace) {
       trace.durationMs = performance.now() - trace.started;
@@ -60,7 +61,7 @@ export function createTelemetry() {
           async didResolveOperation(request) {
             trace.operation = request.operationName || request.operation.operation;
             assessOperation(request.document, request.operation, request.request.variables);
-            if (request.operation.operation === 'mutation') { revision++; cache.clear(); }
+            if (request.operation.operation === 'mutation') telemetry.invalidateCache();
             else if (!/\bmonitor\b|__schema|__type/.test(request.request.query || '')) {
               contextValue.cacheKey = JSON.stringify([revision, request.request.query, request.request.variables || {}, request.operationName]);
             }

@@ -133,6 +133,10 @@ h2 {
   grid-template-columns: 1fr 1fr;
 }
 
+.seas > section > h2 {
+  color: #edf7fb;
+}
+
 form {
   display: grid;
   gap: 12px;

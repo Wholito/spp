@@ -5,8 +5,9 @@ const os = require('os');
 const path = require('path');
 const { createStore } = require('../store');
 
-test('state survives a new store instance', () => {
+test('state survives a new store instance', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rubezh-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const file = path.join(dir, 'nested', 'state.json');
   const first = createStore(file);
   assert.deepEqual(first.load(), { rooms: [] });

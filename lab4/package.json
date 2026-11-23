@@ -6,7 +6,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:placement": "node --test test/features/ship-placement.test.js",
+    "test:replay": "node --test test/features/battle-replay.test.js",
+    "test:realtime": "node --test test/realtime-features.test.js"
   },
   "dependencies": {
     "pg": "^8.23.1",

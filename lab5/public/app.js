@@ -4,11 +4,124 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': 
 const labels = { universities: 'Университеты', countries: 'Страны', cities: 'Города', favorites: 'Избранное', sources: 'Источники', monitor: 'Мониторинг', explorer: 'GraphQL Explorer' };
 const state = { tab: 'universities', page: 1, pages: 1, countries: [], rows: [], version: 0, detailVersion: 0 };
 const examples = {
-  nested: { query: 'query CountryJourney($id: ID!) {\n  country(id: $id) {\n    id name localName region capital languages\n    cities(page: { size: 5 }) {\n      total\n      nodes { name subcountry }\n    }\n    universities(page: { size: 5 }) {\n      total\n      nodes {\n        name domains\n        country { name region }\n      }\n    }\n  }\n}', variables: { id: 'BY' } },
-  search: { query: 'query FindUniversities($filter: UniversityFilter, $page: PageInput) {\n  universities(filter: $filter, page: $page, sort: NAME_ASC) {\n    total\n    pageInfo { number totalPages hasNextPage }\n    nodes { ...UniversityCard }\n  }\n}\n\nfragment UniversityCard on University {\n  id name domains\n  country { id name localName }\n}', variables: { filter: { search: 'technology', countryId: 'US' }, page: { number: 1, size: 5 } } },
-  aliases: { query: 'query Compare($details: Boolean!) {\n  europe: countries(filter: { region: "Europe" }, page: { size: 3 }) {\n    total\n    nodes { name area languages @include(if: $details) }\n  }\n  asia: countries(filter: { region: "Asia" }, page: { size: 3 }) {\n    total\n    nodes { name area languages @include(if: $details) }\n  }\n}', variables: { details: true } },
-  mutation: { query: 'mutation SaveUniversity($id: ID!, $enabled: Boolean!, $note: String) {\n  setFavorite(universityId: $id, enabled: $enabled, note: $note) {\n    id name\n    favorite { note updatedAt }\n  }\n}', variables: { id: 'Вставьте ID университета из каталога', enabled: true, note: 'Хочу узнать об этом университете больше' } },
-  monitor: { query: 'query SystemPulse {\n  monitor {\n    requests errors rejected active cacheHits p95Ms uptimeSeconds\n    traces {\n      id operation durationMs cached error\n      spans { service durationMs ok }\n    }\n  }\n}', variables: {} },
+  nested: {
+    query: `query CountryJourney($id: ID!) {
+  country(id: $id) {
+    id
+    name
+    localName
+    region
+    capital
+    languages
+    cities(page: { size: 5 }) {
+      total
+      nodes {
+        name
+        subcountry
+      }
+    }
+    universities(page: { size: 5 }) {
+      total
+      nodes {
+        name
+        domains
+        country {
+          name
+          region
+        }
+      }
+    }
+  }
+}`,
+    variables: { id: 'BY' },
+  },
+  search: {
+    query: `query FindUniversities($filter: UniversityFilter, $page: PageInput) {
+  universities(filter: $filter, page: $page, sort: NAME_ASC) {
+    total
+    pageInfo {
+      number
+      totalPages
+      hasNextPage
+    }
+    nodes {
+      ...UniversityCard
+    }
+  }
+}
+
+fragment UniversityCard on University {
+  id
+  name
+  domains
+  country {
+    id
+    name
+    localName
+  }
+}`,
+    variables: { filter: { search: 'technology', countryId: 'US' }, page: { number: 1, size: 5 } },
+  },
+  aliases: {
+    query: `query Compare($details: Boolean!) {
+  europe: countries(filter: { region: "Europe" }, page: { size: 3 }) {
+    total
+    nodes {
+      name
+      area
+      languages @include(if: $details)
+    }
+  }
+  asia: countries(filter: { region: "Asia" }, page: { size: 3 }) {
+    total
+    nodes {
+      name
+      area
+      languages @include(if: $details)
+    }
+  }
+}`,
+    variables: { details: true },
+  },
+  mutation: {
+    query: `mutation SaveUniversity($id: ID!, $enabled: Boolean!, $note: String) {
+  setFavorite(universityId: $id, enabled: $enabled, note: $note) {
+    id
+    name
+    favorite {
+      note
+      updatedAt
+    }
+  }
+}`,
+    variables: { id: 'Вставьте ID университета из каталога', enabled: true, note: 'Хочу узнать об этом университете больше' },
+  },
+  monitor: {
+    query: `query SystemPulse {
+  monitor {
+    requests
+    errors
+    rejected
+    active
+    cacheHits
+    p95Ms
+    uptimeSeconds
+    traces {
+      id
+      operation
+      durationMs
+      cached
+      error
+      spans {
+        service
+        durationMs
+        ok
+      }
+    }
+  }
+}`,
+    variables: {},
+  },
 };
 
 function notice(message = '') {
@@ -25,9 +138,43 @@ async function graphql(query, variables = {}, { partial = false } = {}) {
 
 function makeQuery() {
   const type = state.tab === 'favorites' ? 'universities' : state.tab;
-  const fields = type === 'countries' ? 'id name localName region capital area' : `id name ${type === 'cities' ? 'subcountry' : 'state favorite { note }'} ${$('#include-country').checked ? 'country { id name localName region }' : ''} ${type === 'universities' && $('#include-domains').checked ? 'domains' : ''}`;
+  const fields = type === 'countries'
+    ? ['id', 'name', 'localName', 'region', 'capital', 'area']
+    : ['id', 'name'];
+
+  if (type === 'cities') fields.push('subcountry');
+  if (type === 'universities') {
+    fields.push('state', `favorite {
+    note
+  }`);
+  }
+  if (type !== 'countries' && $('#include-country').checked) {
+    fields.push(`country {
+    id
+    name
+    localName
+    region
+  }`);
+  }
+  if (type === 'universities' && $('#include-domains').checked) fields.push('domains');
   const input = type === 'countries' ? 'CountryFilter' : type === 'cities' ? 'CityFilter' : 'UniversityFilter';
-  return `query Browse($filter: ${input}, $sort: Sort, $page: PageInput) {\n  ${type}(filter: $filter, sort: $sort, page: $page) {\n    total\n    pageInfo { number totalPages hasNextPage }\n    nodes { ...CardFields }\n  }\n}\nfragment CardFields on ${type === 'countries' ? 'Country' : type === 'cities' ? 'City' : 'University'} { ${fields} }`;
+  return `query Browse($filter: ${input}, $sort: Sort, $page: PageInput) {
+  ${type}(filter: $filter, sort: $sort, page: $page) {
+    total
+    pageInfo {
+      number
+      totalPages
+      hasNextPage
+    }
+    nodes {
+      ...CardFields
+    }
+  }
+}
+
+fragment CardFields on ${type === 'countries' ? 'Country' : type === 'cities' ? 'City' : 'University'} {
+  ${fields.join('\n  ')}
+}`;
 }
 
 async function loadCatalog() {
@@ -84,17 +231,6 @@ async function selectTab(tab) {
   const isCatalog = ['universities', 'countries', 'cities', 'favorites'].includes(tab);
   $('#catalog').hidden = !isCatalog;
   for (const panel of ['sources', 'monitor', 'explorer']) $(`#${panel}-panel`).hidden = tab !== panel;
-  const descriptions = {
-    universities: ['Найдите своё место<br>в мире знаний<span>.</span>', 'Университеты, города и страны — связанные открытые данные в одном пространстве.'],
-    countries: ['Один мир.<br>Сотни направлений<span>.</span>', 'Изучайте страны, языки и города. Находите университеты через связанные данные.'],
-    cities: ['У каждого города<br>своя история<span>.</span>', 'Откройте города мира и узнайте больше о стране, в которой они находятся.'],
-    favorites: ['Ваш следующий<br>большой шаг<span>.</span>', 'Сохраняйте интересные университеты и добавляйте заметки. Общий список для этой установки приложения.'],
-    sources: ['Прозрачные данные.<br>Открытые возможности<span>.</span>', 'Источники, время импорта и контрольные суммы каждого набора данных.'],
-    monitor: ['Всё связано.<br>Всё под контролем<span>.</span>', 'Нагрузка, скорость ответов и путь каждого запроса через сервисы.'],
-    explorer: ['Один запрос.<br>Больше открытий<span>.</span>', 'Исследуйте схему: вложенные запросы, фрагменты, переменные и мутации.'],
-  };
-  $('#title').innerHTML = descriptions[tab][0];
-  $('#subtitle').textContent = descriptions[tab][1];
   if (!isCatalog) {
     if (tab === 'sources') await loadSources();
     if (tab === 'monitor') await loadMonitor();
@@ -115,16 +251,43 @@ async function selectTab(tab) {
 
 async function bootstrap() {
   try {
-    const { data, errors } = await graphql('{ catalogStats { universities countries cities total } countries(page: { size: 100, number: 1 }) { nodes { id localName } } }', {}, { partial: true });
+    const { data, errors } = await graphql(`
+      {
+        catalogStats {
+          universities
+          countries
+          cities
+          total
+        }
+        countries(page: { size: 100, number: 1 }) {
+          nodes {
+            id
+            localName
+          }
+        }
+      }
+    `, {}, { partial: true });
     for (const key of ['universities', 'countries', 'cities', 'total']) $(`#stat-${key}`).textContent = data?.catalogStats ? format(data.catalogStats[key]) : '—';
     if (data?.catalogStats) $('#nav-count').textContent = format(data.catalogStats.universities);
     state.countries = data?.countries?.nodes || [];
     for (const number of [2, 3]) {
-      const result = await graphql('query Options($page: PageInput) { countries(page: $page) { nodes { id localName } } }', { page: { number, size: 100 } }, { partial: true });
+      const result = await graphql(`
+        query Options($page: PageInput) {
+          countries(page: $page) {
+            nodes {
+              id
+              localName
+            }
+          }
+        }
+      `, { page: { number, size: 100 } }, { partial: true });
       state.countries.push(...(result.data?.countries?.nodes || []));
     }
     state.countries.sort((a, b) => a.localName.localeCompare(b.localName, 'ru'));
-    $('#country-filter').innerHTML = '<option value="">Все страны</option>' + state.countries.map(c => `<option value="${escape(c.id)}">${escape(c.localName)}</option>`).join('');
+    const countryFilter = $('#country-filter');
+    const selectedCountry = countryFilter.value;
+    countryFilter.innerHTML = '<option value="">Все страны</option>' + state.countries.map(c => `<option value="${escape(c.id)}">${escape(c.localName)}</option>`).join('');
+    if (state.countries.some(country => country.id === selectedCountry)) countryFilter.value = selectedCountry;
     if (errors?.length) notice('Сведения о странах временно недоступны.');
   } catch (error) { notice(error.message); }
 }
@@ -133,8 +296,72 @@ async function openDetails(type, id) {
   const version = ++state.detailVersion;
   $('#details-content').textContent = 'Загрузка…';
   if (!$('#details').open) $('#details').showModal();
-  const countryFields = 'id name localName region subregion capital area languages currencies cities(page: { size: 6 }) { total nodes { name subcountry } } universities(page: { size: 6 }) { total nodes { id name domains } }';
-  const query = type === 'countries' ? `query Details($id: ID!) { country(id: $id) { ${countryFields} } }` : type === 'cities' ? `query Details($id: ID!) { city(id: $id) { id name subcountry country { ${countryFields} } } }` : `query Details($id: ID!) { university(id: $id) { id name state domains websites favorite { note updatedAt } country { ${countryFields} } } }`;
+  const countryFields = `
+    id
+    name
+    localName
+    region
+    subregion
+    capital
+    area
+    languages
+    currencies
+    cities(page: { size: 6 }) {
+      total
+      nodes {
+        name
+        subcountry
+      }
+    }
+    universities(page: { size: 6 }) {
+      total
+      nodes {
+        id
+        name
+        domains
+      }
+    }
+  `;
+  const queries = {
+    countries: `
+      query Details($id: ID!) {
+        country(id: $id) {
+          ${countryFields}
+        }
+      }
+    `,
+    cities: `
+      query Details($id: ID!) {
+        city(id: $id) {
+          id
+          name
+          subcountry
+          country {
+            ${countryFields}
+          }
+        }
+      }
+    `,
+    universities: `
+      query Details($id: ID!) {
+        university(id: $id) {
+          id
+          name
+          state
+          domains
+          websites
+          favorite {
+            note
+            updatedAt
+          }
+          country {
+            ${countryFields}
+          }
+        }
+      }
+    `,
+  };
+  const query = queries[type];
   try {
     const { data, errors } = await graphql(query, { id }, { partial: true });
     if (version !== state.detailVersion || !$('#details').open) return;
@@ -146,15 +373,68 @@ async function openDetails(type, id) {
 }
 
 async function saveFavorite(id, enabled, note = '') {
-  return graphql('mutation Save($id: ID!, $enabled: Boolean!, $note: String) { setFavorite(universityId: $id, enabled: $enabled, note: $note) { id favorite { note updatedAt } } }', { id, enabled, note });
+  return graphql(`
+    mutation Save($id: ID!, $enabled: Boolean!, $note: String) {
+      setFavorite(universityId: $id, enabled: $enabled, note: $note) {
+        id
+        favorite {
+          note
+          updatedAt
+        }
+      }
+    }
+  `, { id, enabled, note });
 }
 
 async function loadSources() {
   $('#sources-content').textContent = 'Загрузка…';
   try {
-    const { data } = await graphql('{ sources { id name homepage license count skipped importedAt checksum status error } }');
+    const { data } = await graphql(`
+      {
+        sources {
+          id
+          name
+          homepage
+          license
+          count
+          skipped
+          importedAt
+          checksum
+          status
+          error
+        }
+      }
+    `);
     $('#sources-content').innerHTML = data.sources.map(source => `<article class="source-card"><h3>${escape(source.name)}<span class="badge ${source.status === 'CACHED' ? 'warn' : ''}">${source.status === 'CACHED' ? 'Локальная копия' : 'Загружено из источника'}</span></h3><div class="source-info">${format(source.count)} записей · Пропущено: ${format(source.skipped)}<br>Импорт: ${escape(new Date(source.importedAt).toLocaleString('ru-RU'))}<br>Лицензия: ${escape(source.license)}<br><a href="${escape(source.homepage)}" target="_blank" rel="noopener noreferrer">${escape(source.homepage)}</a><br>SHA-256: ${escape(source.checksum)}${source.error ? `<br>При загрузке: ${escape(source.error)}` : ''}</div></article>`).join('');
   } catch (error) { $('#sources-content').textContent = error.message; }
+}
+
+async function refreshSources() {
+  const button = $('#refresh-sources');
+  const status = $('#sources-status');
+  button.disabled = true;
+  status.textContent = 'Проверяем источники…';
+  try {
+    const { data } = await graphql(`
+      mutation RefreshSources {
+        refreshSources {
+          updated
+          unchecked
+        }
+      }
+    `);
+    const { updated, unchecked } = data.refreshSources;
+    if (updated) {
+      status.textContent = 'Данные обновлены.';
+      await bootstrap();
+      if (!$('#catalog').hidden) await loadCatalog();
+    } else {
+      status.textContent = unchecked ? 'База не изменилась.' : 'Изменений в источниках нет.';
+    }
+    if (unchecked) status.textContent += ` Не удалось проверить источники: ${unchecked}. Использованы локальные копии.`;
+    await loadSources();
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = false; }
 }
 
 async function loadMonitor() {
@@ -182,7 +462,7 @@ $('#next').addEventListener('click', () => { if (state.page < state.pages) { sta
 $('#show-query').addEventListener('click', () => { $('#query-preview').hidden = !$('#query-preview').hidden; });
 $('#close-details').addEventListener('click', () => { state.detailVersion++; $('#details').close(); });
 $('#details').addEventListener('click', event => { if (event.target === $('#details')) { state.detailVersion++; $('#details').close(); } });
-$('#refresh-sources').addEventListener('click', loadSources);
+$('#refresh-sources').addEventListener('click', refreshSources);
 $('#refresh-monitor').addEventListener('click', loadMonitor);
 $('#example').addEventListener('change', setExample);
 $('#execute').addEventListener('click', async () => {
